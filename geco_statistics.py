@@ -72,36 +72,78 @@ class TimeIntervalSet:
     def union(self, other):
         """
         Return the union of the current set of intervals with some other set.
+
+        Returns a new TimeIntervalSet instance without modifying the input
+        arguments.
         """
         self.is_self_consistent()
         other.is_self_consistent()
-        if len(other._data) == 0:
-            return self
+        if len(other) == 0:
+            return self.clone()
+        elif len(self) == 0:
+            return other.clone()
         # iteratively union every interval in the other set into this set
         result = self.clone()
         for i in range(0, len(other)/2):
+            # this part is (mostly)  shared between set algebra methods
             start  = other._data[2*i]
             end    = other._data[2*i + 1]
             bounds = result.__left_and_right_bounds__(start, end)
-            if bounds[0] % 2 == 0 and bounds[1] % 2 == 1:
+            left   = bounds[0] % 2
+            right  = bounds[1] % 2
+            # the conditional responses are unique to each set algebra method
+            if left == 0 and right == 1:
                 result._data = result._data[0:bounds[0]] + [start, end] + result._data[bounds[1]+1:]
-            elif bounds[0] % 2 == 0 and bounds[1] % 2 == 0:
+            elif left == 0 and right == 0:
                 result._data = result._data[0:bounds[0]] + [start] + result._data[bounds[1]+1:]
-            elif bounds[0] % 2 == 1 and bounds[1] % 2 == 1:
+            elif left == 1 and right == 1:
                 result._data = result._data[0:bounds[0]] + [end] + result._data[bounds[1]+1:]
-            elif bounds[0] % 2 == 1 and bounds[1] % 2 == 0:
+            elif left == 1 and right == 0:
                 result._data = result._data[0:bounds[0]] + result._data[bounds[1]+1:]
+            result.remove_empty_sets()
+        return result
+
+    def intersection(self, other):
+        """
+        Return the intersection of the current set of intervals with some other
+        set.
+
+        Returns a new TimeIntervalSet instance without modifying the input
+        arguments.
+        """
+        self.is_self_consistent()
+        other.is_self_consistent()
+        if len(other) == 0 or len(self) == 0:
+            return TimeIntervalSet()
+        result = TimeIntervalSet()
+        for i in range(0, len(other)/2):
+            # this part is (mostly)  shared between set algebra methods
+            start  = other._data[2*i]
+            end    = other._data[2*i + 1]
+            bounds = self.__left_and_right_bounds__(start, end) # this differs
+            left   = bounds[0] % 2
+            right  = bounds[1] % 2
+            # the conditional responses are unique to each set algebra method
+            if left == 0 and right == 1:
+                result._data += self._data[bounds[0]:bounds[1]+1]
+            elif left == 0 and right == 0:
+                result._data += self._data[bounds[0]:bounds[1]+1] + [end]
+            elif left == 1 and right == 1:
+                result._data += [start] + self._data[bounds[0]:bounds[1]+1]
+            elif left == 1 and right == 0:
+                result._data += [start] + self._data[bounds[0]:bounds[1]+1] + [end]
             result.remove_empty_sets()
         return result
         # TODO
 
-    def intersection(self, other):
-        self.is_self_consistent()
-        other.is_self_consistent()
-        raise Exception('not yet defined')
-        # TODO
-
     def complement_with_respect_to(self, other):
+        """
+        Return the complement of the current set of intervals with respect to
+        another set.
+
+        Returns a new TimeIntervalSet instance without modifying the input
+        arguments.
+        """
         self.is_self_consistent()
         other.is_self_consistent()
         raise Exception('not yet defined')

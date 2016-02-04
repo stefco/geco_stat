@@ -134,20 +134,41 @@ class TimeIntervalSet:
                 result._data += [start] + self._data[bounds[0]:bounds[1]+1] + [end]
             result.remove_empty_sets()
         return result
-        # TODO
 
     def complement_with_respect_to(self, other):
         """
         Return the complement of the current set of intervals with respect to
-        another set.
+        another set. The other set must be a superset of the current set, or
+        else an error will be raised.
 
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
         self.is_self_consistent()
         other.is_self_consistent()
-        raise Exception('not yet defined')
-        # TODO
+        if self.union(other) != other:
+            raise ValueError('Can only take complement with respect to a superset.')
+        if len(self) == 0:
+            return other
+        result = TimeIntervalSet()
+        for i in range(0, len(other)/2):
+            # this part is (mostly)  shared between set algebra methods
+            start  = other._data[2*i]
+            end    = other._data[2*i + 1]
+            bounds = self.__left_and_right_bounds__(start, end) # this differs
+            left   = bounds[0] % 2
+            right  = bounds[1] % 2
+            # the conditional responses are unique to each set algebra method
+            if left == 0 and right == 1:
+                result._data += [start] + self._data[bounds[0]:bounds[1]+1] + [end]
+            elif left == 0 and right == 0:
+                result._data += [start] + self._data[bounds[0]:bounds[1]+1]
+            elif left == 1 and right == 1:
+                result._data += self._data[bounds[0]:bounds[1]+1] + [end]
+            elif left == 1 and right == 0:
+                result._data += self._data[bounds[0]:bounds[1]+1]
+            result.remove_empty_sets()
+        return result
 
     def __left_and_right_bounds__(self, a, b):
         """
@@ -223,7 +244,7 @@ class TimeIntervalSet:
             length += ends[i] - starts[i]
         return length
 
-    def print_human_readable_dates(self):
+    def human_readable_dates(self):
         """
         Print the contained time intervals in an immediately human-readable
         form, assuming that the time endpoints that comprise this instance
@@ -237,9 +258,21 @@ class TimeIntervalSet:
             [Sun Jan 03 03:00:03 GMT 2016, Sun Jan 03 03:00:05 GMT 2016)
 
         """
-        times = [int(x) for x in self._data]
-        raise Exception('not yet defined')
-        #TODO will rely on lalapps_tconvert for implementation
+        times = [str(int(x)) for x in self._data]
+        # raise Exception('not yet defined')
+        self.is_self_consistent()
+        tstring = ""
+        i = 0
+        for time in times:
+            dump = subprocess.Popen(["lalapps_tconvert",time], stdout=subprocess.PIPE)
+            if i == 0:
+                tstring += '[' + dump.communicate()[0][:-1] + ', '
+                i = 1
+            else:
+                tstring += dump.communicate()[0][:-1] + ') U\n'
+                i = 0
+        tstring = tstring[:-3] # shave off the last U character and newline
+        return tstring
 
     def __eq__(self, other):
         return self._data == other._data

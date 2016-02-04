@@ -5,6 +5,8 @@ import subprocess
 import datetime
 import numpy as np
 
+VERSION = '0.0.0'
+
 # could use the interval package, but would be one more external dependency
 class TimeIntervalSet:
     """
@@ -20,6 +22,10 @@ class TimeIntervalSet:
     - intersection(otherIntervalSet)
     - complement_with_respect_to(otherIntervalSet)
     - no_overlap_union(otherIntervalSet)
+
+    These methods do not modify the TimeIntervalSet instance to which they are
+    bound. This makes it easy to play around with them without annoying and
+    potentially dangerous side-effects.
     """
 
     def __init__(self, intervalSet=None, start=None, end=None):
@@ -44,24 +50,62 @@ class TimeIntervalSet:
 
             [s, e)
         """
+        self._version = VERSION
         if type(intervalSet) == list:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal starts and ends)')
             elif sorted(intervalSet) != intervalSet:
                 raise ValueError('intervalSet must be sorted')
             else:
-                self.data = [float(x) for x in intervalSet]
+                self._data = [float(x) for x in intervalSet]
                 self.remove_empty_sets()
                 self.is_self_consistent()
         elif intervalSet == start == end == None or start == end:
-            self.data = []
+            self._data = []
         elif start < end:
-            self.data = [float(start), float(end)]
+            self._data = [float(start), float(end)]
             self.remove_empty_sets()
             self.is_self_consistent()
         else:
             raise ValueError('Invalid combination of arguments. See documentation.')
 
+    def union(self, other):
+        """
+        Return the union of the current set of intervals with some other set.
+        """
+        self.is_self_consistent()
+        other.is_self_consistent()
+        if len(other._data) == 0:
+            return self
+        # iteratively union every interval in the other set into this set
+        result = self.clone()
+        for i in range(0, len(other)/2):
+            start  = other._data[2*i]
+            end    = other._data[2*i + 1]
+            bounds = result.__left_and_right_bounds__(start, end)
+            if bounds[0] % 2 == 0 and bounds[1] % 2 == 1:
+                result._data = result._data[0:bounds[0]] + [start, end] + result._data[bounds[1]+1:]
+            elif bounds[0] % 2 == 0 and bounds[1] % 2 == 0:
+                result._data = result._data[0:bounds[0]] + [start] + result._data[bounds[1]+1:]
+            elif bounds[0] % 2 == 1 and bounds[1] % 2 == 1:
+                result._data = result._data[0:bounds[0]] + [end] + result._data[bounds[1]+1:]
+            elif bounds[0] % 2 == 1 and bounds[1] % 2 == 0:
+                result._data = result._data[0:bounds[0]] + result._data[bounds[1]+1:]
+            result.remove_empty_sets()
+        return result
+        # TODO
+
+    def intersection(self, other):
+        self.is_self_consistent()
+        other.is_self_consistent()
+        raise Exception('not yet defined')
+        # TODO
+
+    def complement_with_respect_to(self, other):
+        self.is_self_consistent()
+        other.is_self_consistent()
+        raise Exception('not yet defined')
+        # TODO
 
     def __left_and_right_bounds__(self, a, b):
         """
@@ -81,26 +125,11 @@ class TimeIntervalSet:
         positive even length lists of start and end points. In other words, an
         error will be raised if the user tries passing an empty TimeIntervalSet.
         """
-        if len(self.data) == 0:
+        if len(self._data) == 0:
             raise ValueError('Cannot use an empty TimeIntervalSet.')
-        l = bisect.bisect_left(self.data, a)
-        r = bisect.bisect_right(self.data, b) - 1
+        l = bisect.bisect_left(self._data, a)
+        r = bisect.bisect_right(self._data, b) - 1
         return [l, r]
-
-    def union(self, other):
-        self.is_self_consistent()
-        raise Exception('not yet defined')
-        # TODO
-
-    def intersection(self, other):
-        self.is_self_consistent()
-        raise Exception('not yet defined')
-        # TODO
-
-    def complement_with_respect_to(self, other):
-        self.is_self_consistent()
-        raise Exception('not yet defined')
-        # TODO
 
     def remove_empty_sets(self):
         """
@@ -121,32 +150,70 @@ class TimeIntervalSet:
         """
         self.is_self_consistent() # check
         i = 0
-        while i < len(self.data) - 1:
-            if self.data[i] == self.data[i+1]:
-                self.data.pop(i) # remove this instance of the value...
-                self.data.pop(i) # and the one to its right.
+        while i < len(self._data) - 1:
+            if self._data[i] == self._data[i+1]:
+                self._data.pop(i) # remove this instance of the value...
+                self._data.pop(i) # and the one to its right.
             else:
                 i += 1           # not a copy, move on to the next one
 
     def is_self_consistent(self):
         'Check that this instance has form consistent with the class spec'
-        if type(self.data) != list:
+        if type(self._data) != list:
             raise Exception('TimeIntervalSet corrupted: data not a list')
-        elif sorted(self.data) != self.data:
+        elif sorted(self._data) != self._data:
             raise Exception('TimeIntervalSet corrupted: data not sorted')
-        elif len(self.data) % 2 != 0:
+        elif len(self._data) % 2 != 0:
             raise Exception('TimeIntervalSet corrupted: odd number of endpoints')
         return True
 
+    def clone(self):
+        return TimeIntervalSet(self._data)
+
+    def combined_length(self):
+        'Get the combined length of all time intervals in this TimeIntervalSet.'
+        if len(self._data) == 0:
+            return 0
+        starts = self._data[0::2]
+        ends   = self._data[1::2]
+        length = 0
+        for i in range(0, len(starts)):
+            length += ends[i] - starts[i]
+        return length
+
+    def print_human_readable_dates(self):
+        """
+        Print the contained time intervals in an immediately human-readable
+        form, assuming that the time endpoints that comprise this instance
+        are GPS times. For example,
+
+            [1135825217, 1135825219) U [1135825220, 1135825222)
+
+        will be printed in the more comprehensible form:
+
+            [Sun Jan 03 03:00:00 GMT 2016, Sun Jan 03 03:00:02 GMT 2016) U
+            [Sun Jan 03 03:00:03 GMT 2016, Sun Jan 03 03:00:05 GMT 2016)
+
+        """
+        times = [int(x) for x in self._data]
+        raise Exception('not yet defined')
+        #TODO will rely on lalapps_tconvert for implementation
+
+    def __eq__(self, other):
+        return self._data == other._data
+
+    def __ne__(self, other):
+        return self._data != other._data
+
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __str__(self):
         self.is_self_consistent()
         if self.__len__() == 0:
             return '{}'
-        starts = self.data[0::2]
-        ends   = self.data[1::2]
+        starts = self._data[0::2]
+        ends   = self._data[1::2]
         string = '[' + str(starts[0]) + ', ' + str(ends[0]) + ')'
         for i in range(1, len(starts)):
             string += ' U [' + str(starts[i]) + ', ' + str(ends[i]) + ')'
@@ -174,6 +241,6 @@ class Statistics:
         self.hist_bins = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
         self.skipped = () #TODO: should be an Interval type
         self.times = () #TODO: Interval
-        self.version = '0.0.0'
+        self._version = VERSION
 
 #TODO: DT and IRIG statistics subclasses

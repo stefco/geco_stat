@@ -292,6 +292,7 @@ class TimeIntervalSet(object):
         return TimeIntervalSet.union(self, other)
 
     def __str__(self):
+        'Return a string expressing the object in set union notation'
         self.is_self_consistent()
         if self.__len__() == 0:
             return '{}'
@@ -301,6 +302,10 @@ class TimeIntervalSet(object):
         for i in range(1, len(starts)):
             string += ' U [' + str(starts[i]) + ', ' + str(ends[i]) + ')'
         return string
+
+    def __repr__(self):
+        self.is_self_consistent()
+        return 'geco_statistics.TimeIntervalSet(' + repr(self._data) + ')'
 
 class Statistics(object):
     def __init__(self, hist_range, bitrate=16384, hist_num_bins=256):

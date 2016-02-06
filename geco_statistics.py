@@ -5,10 +5,10 @@ import subprocess
 import datetime
 import numpy as np
 
-VERSION = '0.0.0'
+VERSION = '0.0.1'
 
 # could use the interval package, but would be one more external dependency
-class TimeIntervalSet:
+class TimeIntervalSet(object):
     """
     TimeIntervalSet
 
@@ -283,6 +283,14 @@ class TimeIntervalSet:
     def __len__(self):
         return len(self._data)
 
+    def __mul__(self, other):
+        'Multiplication can be used as a shorthand for intersection.'
+        return TimeIntervalSet.intersection(self, other)
+
+    def __add__(self, other):
+        'Addition can be used as a shorthand for union.'
+        return TimeIntervalSet.union(self, other)
+
     def __str__(self):
         self.is_self_consistent()
         if self.__len__() == 0:
@@ -294,8 +302,16 @@ class TimeIntervalSet:
             string += ' U [' + str(starts[i]) + ', ' + str(ends[i]) + ')'
         return string
 
-class Statistics:
+class Statistics(object):
     def __init__(self, hist_range, bitrate=16384, hist_num_bins=256):
+        """
+        Statistics
+
+        A class for storing diagnostic statistics for the aLIGO timing system.
+        Includes methods for iteratively generating, amalgamating, and
+        displaying statistics.
+        """
+
 
         # make sure hist_range is an ordered pair of numbers
         if not len(hist_range) == 2:
@@ -304,18 +320,18 @@ class Statistics:
             raise ValueError('minimum value of histogram bin range must be smaller than max')
 
         # these should actually be class properties for subclasses of Statistics
-        self.bitrate = bitrate
+        self.bitrate    = bitrate
         self.hist_num_bins = hist_num_bins
         self.hist_range = hist_range
 
-        self.sum = 0
-        self.sum_sq = 0
-        self.max = -sys.maxsize - 1
-        self.min = sys.maxsize
-        self.hist = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
-        self.hist_bins = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
-        self.skipped = () #TODO: should be an Interval type
-        self.times = () #TODO: Interval
-        self._version = VERSION
+        self.sum        = np.int64(0)
+        self.sum_sq     = np.int64(0)
+        self.max        = np.iinfo(np.int64).min # lowest possible max, cannot survive
+        self.min        = np.iinfo(np.int64).max # same for min
+        self.hist       = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
+        self.hist_bins  = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
+        self.skipped    = TimeIntervalSet()
+        self.time_range = TimeIntervalSet()
+        self._version   = VERSION
 
 #TODO: DT and IRIG statistics subclasses

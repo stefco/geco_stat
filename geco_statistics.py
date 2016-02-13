@@ -5,7 +5,8 @@ import subprocess
 import datetime
 import numpy as np
 
-VERSION = '0.0.1'
+VERSION = '0.0.3'
+DEFAULT_BITRATE = 16384
 
 # could use the interval package, but would be one more external dependency
 class TimeIntervalSet(object):
@@ -291,6 +292,24 @@ class TimeIntervalSet(object):
         'Addition can be used as a shorthand for union.'
         return TimeIntervalSet.union(self, other)
 
+    def __sub__(self, other):
+        """
+        Subtraction can be used as a shorthand for complement. Specifically:
+
+            a - b = b.complement_with_respect_to(a)
+
+        Take careful note that the order of operations is switched in order
+        for the notation to make sense. With this convention, it is easy to
+        see that
+
+            (a - b) + b = a - (b - b) = a - b + b = a
+
+        so that it is manifestly associative, though it is non-commutative
+        and doesn't obey proper group behavior since e.g. (-a) is not
+        defined.
+        """
+        return TimeIntervalSet.complement_with_respect_to(other, self)
+
     def __str__(self):
         'Return a string expressing the object in set union notation'
         self.is_self_consistent()
@@ -307,36 +326,118 @@ class TimeIntervalSet(object):
         self.is_self_consistent()
         return 'geco_statistics.TimeIntervalSet(' + repr(self._data) + ')'
 
-class Statistics(object):
-    def __init__(self, hist_range, bitrate=16384, hist_num_bins=256):
+class Histogram(object):
+    """
+    A class for storing a histogram of (quasi) periodic timeseries. In
+    the current version, each period is assumed to last for one second.
+    Bitrate is adjustable. The idea is to compare many periods worth
+    of a signal in order to determine how much the signal varies over
+    the entire timespan considered.
+
+    This class DOES NOT contain information about the time ranges
+    included in the data; that information should go into some containing
+    class. This class is intended as a diagnostic report primitive.
+    """
+
+    def __init__(self,
+            hist            = None,
+            hist_bins       = None,
+            bitrate         = DEFAULT_BITRATE,
+            hist_range      = (-1e3, 1e3),
+            hist_num_bins   = 256):
         """
-        Statistics
-
-        A class for storing diagnostic statistics for the aLIGO timing system.
-        Includes methods for iteratively generating, amalgamating, and
-        displaying statistics.
+        Initialize an instance of the class. All properties have default
+        values corresponding to an empty statistics set; they can be
+        individually overridden.
         """
-
-
         # make sure hist_range is an ordered pair of numbers
         if not len(hist_range) == 2:
             raise ValueError('second argument (hist_range) must have length 2')
         elif hist_range[0] >= hist_range[1]:
             raise ValueError('minimum value of histogram bin range must be smaller than max')
 
-        # these should actually be class properties for subclasses of Statistics
-        self.bitrate    = bitrate
-        self.hist_num_bins = hist_num_bins
-        self.hist_range = hist_range
+        # set values to "empty" histograms
+        if hist         == None: hist        = np.zeros((hist_num_bins, bitrate), dtype=np.int64),
+        if hist_bins    == None: hist_bins   = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1),
 
-        self.sum        = np.int64(0)
-        self.sum_sq     = np.int64(0)
-        self.max        = np.iinfo(np.int64).min # lowest possible max, cannot survive
-        self.min        = np.iinfo(np.int64).max # same for min
-        self.hist       = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
-        self.hist_bins  = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
-        self.skipped    = TimeIntervalSet()
-        self.time_range = TimeIntervalSet()
+        self.bitrate        = bitrate
+        self.hist_num_bins  = hist_num_bins
+        self.hist_range     = hist_range
+        self.hist       = hist
+        self.hist_bins  = hist_bins
+
+    def is_self_consistent(self):
+        # TODO
+        raise Exception('not yet implemented')
+
+class Statistics(object):
+    """
+    A class for storing diagnostic statistics for the aLIGO timing system.
+    Includes methods for iteratively generating, amalgamating, and
+    displaying statistics.
+
+    This class DOES NOT contain information about the time ranges
+    included in the data; that information should go into some containing
+    class. This class is intended as a diagnostic report primitive.
+    """
+
+    def __init__(self,
+            sum             = None,
+            sum_sq          = None,
+            max             = np.iinfo(np.int64).min, # lowest possible max, cannot survive
+            min             = np.iinfo(np.int64).max, # same for min
+            bitrate         = DEFAULT_BITRATE):
+        """
+        Initialize an instance of the class. All properties have default
+        values corresponding to an empty statistics set; they can be
+        individually overridden.
+        """
+        # set values of sum, sum_sq, and the histograms, since these depend on
+        # bitrate and hist_num_bins and hence cannot be set above
+        if sum          == None: sum         = np.zeros(bitrate)
+        if sum_sq       == None: sum_sq      = np.zeros(bitrate)
+
+        self.bitrate    = bitrate
+
+        self.sum        = sum
+        self.sum_sq     = sum_sq
+        self.max        = max
+        self.min        = min
+        self.time_range = time_range
         self._version   = VERSION
 
-#TODO: DT and IRIG statistics subclasses
+    def from_timeseries(self, timeseries, time_range, bitrate=DEFAULT_BITRATE):
+        """
+        Create a statistics object from timeseries data. The timeseries can be
+        an integer multiple of the bitrate, in which case it is interpreted
+        as comprising multiple seconds worth of data.
+        """
+        # TODO
+        raise Exception('not yet implemented')
+
+    def is_self_consistent(self):
+        # TODO
+        raise Exception('not yet implemented')
+
+class Report(object):
+    """
+    A class for generating reports on data integrity. Should be extended to
+    create reports specific to different types of data, e.g. IRIGBReport
+    and DuoToneReport.
+    """
+    def __init__(self,
+            bitrate         = DEFAULT_BITRATE,
+            time_intervals  = TimeIntervalSet(),
+            statistics      = Statistics(),
+            histogram       = Histogram()):
+        self.time_intervals = time_intervals
+        self.statistics     = statistics
+        self.histogram      = histogram
+        # TODO self-destruct if not self-consistent
+
+    def is_self_consistent(self):
+        # TODO
+        raise Exception('not yet implemented')
+
+# TODO: DT and IRIG report classes; everything should fit into a report;
+# a report contains both statistics and histogram classes.

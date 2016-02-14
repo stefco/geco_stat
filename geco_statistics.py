@@ -3,9 +3,10 @@ import bisect
 import os
 import subprocess
 import datetime
+import h5py
 import numpy as np
 
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 DEFAULT_BITRATE = 16384
 
 # could use the interval package, but would be one more external dependency
@@ -60,13 +61,13 @@ class TimeIntervalSet(object):
             else:
                 self._data = [float(x) for x in intervalSet]
                 self.remove_empty_sets()
-                self.is_self_consistent()
+                self._confirm_self_consistency()
         elif intervalSet == start == end == None or start == end:
             self._data = []
         elif start < end:
             self._data = [float(start), float(end)]
             self.remove_empty_sets()
-            self.is_self_consistent()
+            self._confirm_self_consistency()
         else:
             raise ValueError('Invalid combination of arguments. See documentation.')
 
@@ -77,8 +78,8 @@ class TimeIntervalSet(object):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self.is_self_consistent()
-        other.is_self_consistent()
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
         if len(other) == 0:
             return self.clone()
         elif len(self) == 0:
@@ -112,8 +113,8 @@ class TimeIntervalSet(object):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self.is_self_consistent()
-        other.is_self_consistent()
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
         if len(other) == 0 or len(self) == 0:
             return TimeIntervalSet()
         result = TimeIntervalSet()
@@ -145,8 +146,8 @@ class TimeIntervalSet(object):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self.is_self_consistent()
-        other.is_self_consistent()
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
         if self.union(other) != other:
             raise ValueError('Can only take complement with respect to a superset.')
         if len(self) == 0:
@@ -212,7 +213,7 @@ class TimeIntervalSet(object):
 
         is empty, and can simply be removed.
         """
-        self.is_self_consistent() # check
+        self._confirm_self_consistency() # check
         i = 0
         while i < len(self._data) - 1:
             if self._data[i] == self._data[i+1]:
@@ -221,7 +222,7 @@ class TimeIntervalSet(object):
             else:
                 i += 1           # not a copy, move on to the next one
 
-    def is_self_consistent(self):
+    def _confirm_self_consistency(self):
         'Check that this instance has form consistent with the class spec'
         if type(self._data) != list:
             raise Exception('TimeIntervalSet corrupted: data not a list')
@@ -232,7 +233,7 @@ class TimeIntervalSet(object):
         return True
 
     def clone(self):
-        return TimeIntervalSet(self._data)
+        return type(self)(self._data)
 
     def combined_length(self):
         'Get the combined length of all time intervals in this TimeIntervalSet.'
@@ -261,7 +262,7 @@ class TimeIntervalSet(object):
         """
         times = [str(int(x)) for x in self._data]
         # raise Exception('not yet defined')
-        self.is_self_consistent()
+        self._confirm_self_consistency()
         tstring = ""
         i = 0
         for time in times:
@@ -286,11 +287,11 @@ class TimeIntervalSet(object):
 
     def __mul__(self, other):
         'Multiplication can be used as a shorthand for intersection.'
-        return TimeIntervalSet.intersection(self, other)
+        return type(self).intersection(self, other)
 
     def __add__(self, other):
         'Addition can be used as a shorthand for union.'
-        return TimeIntervalSet.union(self, other)
+        return type(self).union(self, other)
 
     def __sub__(self, other):
         """
@@ -308,11 +309,11 @@ class TimeIntervalSet(object):
         and doesn't obey proper group behavior since e.g. (-a) is not
         defined.
         """
-        return TimeIntervalSet.complement_with_respect_to(other, self)
+        return type(self).complement_with_respect_to(other, self)
 
     def __str__(self):
         'Return a string expressing the object in set union notation'
-        self.is_self_consistent()
+        self._confirm_self_consistency()
         if self.__len__() == 0:
             return '{}'
         starts = self._data[0::2]
@@ -323,7 +324,7 @@ class TimeIntervalSet(object):
         return string
 
     def __repr__(self):
-        self.is_self_consistent()
+        self._confirm_self_consistency()
         return 'geco_statistics.TimeIntervalSet(' + repr(self._data) + ')'
 
 class Histogram(object):
@@ -341,10 +342,10 @@ class Histogram(object):
 
     def __init__(self,
             hist            = None,
-            hist_bins       = None,
-            bitrate         = DEFAULT_BITRATE,
             hist_range      = (-1e3, 1e3),
-            hist_num_bins   = 256):
+            hist_num_bins   = 256,
+            bitrate         = DEFAULT_BITRATE,
+            version         = VERSION):
         """
         Initialize an instance of the class. All properties have default
         values corresponding to an empty statistics set; they can be
@@ -357,18 +358,69 @@ class Histogram(object):
             raise ValueError('minimum value of histogram bin range must be smaller than max')
 
         # set values to "empty" histograms
-        if hist         == None: hist        = np.zeros((hist_num_bins, bitrate), dtype=np.int64),
-        if hist_bins    == None: hist_bins   = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1),
+        if hist     == None: hist        = np.zeros((hist_num_bins, bitrate), dtype=np.int64),
 
-        self.bitrate        = bitrate
         self.hist_num_bins  = hist_num_bins
         self.hist_range     = hist_range
-        self.hist       = hist
-        self.hist_bins  = hist_bins
+        self.hist           = hist
+        self.hist_bins      = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
+        self.bitrate        = bitrate
+        self._version       = version
 
-    def is_self_consistent(self):
+    @classmethod
+    def from_timeseries(cls, timeseries, time_range, bitrate=DEFAULT_BITRATE):
         # TODO
         raise Exception('not yet implemented')
+
+    def union(self, other):
+        """
+        Take the union of these two histograms, representing the histogram of
+        the union of the two histograms' respective datasets.
+        """
+        self.is_compatible_with(other)
+        ans         = self.clone()
+        ans.hist    = self.hist + other.hist
+        return ans
+
+    def clone(self):
+        self._confirm_self_consistency()
+        return type(self)(
+            hist            = self.hist,
+            hist_range      = self.hist_range,
+            hist_num_bins   = self.hist_num_bins,
+            bitrate         = self.bitrate
+        )
+
+    def is_compatible_with(self, other):
+        if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
+            raise ValueError('Histograms have different bin edges')
+        if self.bitrate != other.bitrate:
+            raise ValueError('Histograms have different bitrates')
+        if self._version != VERSION:
+            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        if self._version != other._version:
+            raise ValueError('Histograms have different bitrates')
+        if type(self) != type(other):
+            raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
+        return True
+        
+    def _confirm_self_consistency(self):
+        if self._version != VERSION:
+            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        return True
+
+    def __eq__(self, other):
+        try:
+            self.is_compatible_with(other)
+        except ValueError:
+            return False
+        return np.array_equal(self.hist, other.hist)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        return type(self).union(self, other)
 
 class Statistics(object):
     """
@@ -386,27 +438,26 @@ class Statistics(object):
             sum_sq          = None,
             max             = np.iinfo(np.int64).min, # lowest possible max, cannot survive
             min             = np.iinfo(np.int64).max, # same for min
-            bitrate         = DEFAULT_BITRATE):
+            bitrate         = DEFAULT_BITRATE,
+            version         = VERSION):
         """
-        Initialize an instance of the class. All properties have default
-        values corresponding to an empty statistics set; they can be
-        individually overridden.
+        All properties have default values corresponding to an empty statistics
+        set; they can be individually overridden.
         """
         # set values of sum, sum_sq, and the histograms, since these depend on
         # bitrate and hist_num_bins and hence cannot be set above
         if sum          == None: sum         = np.zeros(bitrate)
         if sum_sq       == None: sum_sq      = np.zeros(bitrate)
 
-        self.bitrate    = bitrate
-
         self.sum        = sum
         self.sum_sq     = sum_sq
         self.max        = max
         self.min        = min
-        self.time_range = time_range
-        self._version   = VERSION
+        self.bitrate    = bitrate
+        self._version   = version
 
-    def from_timeseries(self, timeseries, time_range, bitrate=DEFAULT_BITRATE):
+    @classmethod
+    def from_timeseries(cls, timeseries, time_range, bitrate=DEFAULT_BITRATE):
         """
         Create a statistics object from timeseries data. The timeseries can be
         an integer multiple of the bitrate, in which case it is interpreted
@@ -415,9 +466,62 @@ class Statistics(object):
         # TODO
         raise Exception('not yet implemented')
 
-    def is_self_consistent(self):
-        # TODO
-        raise Exception('not yet implemented')
+    def union(self, other):
+        """
+        Take the union of these statistics, representing the same statistics
+        taken on the union of the two statistics objects' respective datasets.
+        """
+        self.is_compatible_with(other)
+        ans         = self.clone()
+        ans.sum     = self.sum      + other.sum
+        ans.sum_sq  = self.sum_sq   + other.sum_sq
+        ans.max     = self.max      + other.max
+        ans.min     = self.min      + other.min
+        return ans
+
+    def clone(self):
+        self._confirm_self_consistency()
+        return type(self)(
+            sum             = self.sum,
+            sum_sq          = self.sum_sq,
+            max             = self.max,
+            min             = self.min,
+            bitrate         = self.bitrate
+        )
+
+    def is_compatible_with(self, other):
+        if self.bitrate != other.bitrate:
+            raise ValueError('Histograms have different bitrates')
+        if self._version != VERSION:
+            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        if self._version != other._version:
+            raise ValueError('Histograms have different bitrates')
+        if type(self) != type(other):
+            raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
+        return True
+
+    def _confirm_self_consistency(self):
+        if self._version != VERSION:
+            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        return True
+
+    def __eq__(self, other):
+        try:
+            self.is_compatible_with(other)
+        except ValueError:
+            return False
+        return (
+            np.array_equal(self.sum,    other.sum)      and
+            np.array_equal(self.sum_sq, other.sum_sq)   and
+            np.array_equal(self.max,    other.max)      and
+            np.array_equal(self.min,    other.min)
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        return type(self).union(self, other)
 
 class Report(object):
     """
@@ -426,16 +530,19 @@ class Report(object):
     and DuoToneReport.
     """
     def __init__(self,
-            bitrate         = DEFAULT_BITRATE,
             time_intervals  = TimeIntervalSet(),
             statistics      = Statistics(),
-            histogram       = Histogram()):
+            histogram       = Histogram(),
+            bitrate         = DEFAULT_BITRATE,
+            version         = VERSION):
         self.time_intervals = time_intervals
         self.statistics     = statistics
         self.histogram      = histogram
-        # TODO self-destruct if not self-consistent
+        self.bitrate        = bitrate
+        self._version       = version
+        self._confirm_self_consistency()
 
-    def is_self_consistent(self):
+    def _confirm_self_consistency(self):
         # TODO
         raise Exception('not yet implemented')
 

@@ -491,18 +491,18 @@ class Statistics(object):
 
     def is_compatible_with(self, other):
         if self.bitrate != other.bitrate:
-            raise ValueError('Histograms have different bitrates')
+            raise ValueError('Statistics have different bitrates')
         if self._version != VERSION:
-            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+            raise ValueError('Statistics version ' + self._version + ' does not match lib version')
         if self._version != other._version:
-            raise ValueError('Histograms have different bitrates')
+            raise ValueError('Statistics have different bitrates')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
 
     def _confirm_self_consistency(self):
         if self._version != VERSION:
-            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+            raise ValueError('Statistics version ' + self._version + ' does not match lib version')
         return True
 
     def __eq__(self, other):
@@ -543,8 +543,18 @@ class Report(object):
         self._confirm_self_consistency()
 
     def _confirm_self_consistency(self):
-        # TODO
-        raise Exception('not yet implemented')
+        if not (self.bitrate == self.time_intervals.bitrate == self.statistics.bitrate == self.histogram.bitrate):
+            raise ValueError('Report constituents have different bitrates')
+        if not (self._version == self.time_intervals._version == self.statistics._version == self.histogram._version):
+            raise ValueError('Report constituents have different versions')
+        if self._version != VERSION:
+            raise ValueError('Report version ' + self._version + ' does not match lib version')
+        if type(time_intervals) != TimeIntervalSet:
+            raise ValueError('self.time_intervals must be of type TimeIntervalSet')
+        if type(statistics) != Statistics:
+            raise ValueError('self.statistics must be of type Statistics')
+        if type(histogram) != Histogram:
+            raise ValueError('self.histogram must be of type Histogram')
 
 # TODO: DT and IRIG report classes; everything should fit into a report;
 # a report contains both statistics and histogram classes.

@@ -55,7 +55,7 @@ class TimeIntervalSet(object):
             [s, e)
         """
         self._version = VERSION
-        if type(intervalSet) == list or type(intervalSet) == numpy.ndarray:
+        if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal starts and ends)')
             elif not np.array_equal(sorted(intervalSet), intervalSet):

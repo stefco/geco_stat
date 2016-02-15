@@ -6,10 +6,11 @@ import datetime
 import h5py
 import numpy as np
 
-VERSION = '0.0.4'
+VERSION = '0.0.7'
 DEFAULT_BITRATE = 16384
 
 # could use the interval package, but would be one more external dependency
+# TODO: implement TimeIntervalSet using numpy array with doubles as datatype
 class TimeIntervalSet(object):
     """
     TimeIntervalSet
@@ -327,7 +328,42 @@ class TimeIntervalSet(object):
         self._confirm_self_consistency()
         return 'geco_statistics.TimeIntervalSet(' + repr(self._data) + ')'
 
-class Histogram(object):
+class ReportData(object):
+    "Abstract class for aggregated data. All instances must implement interface."
+    __metaclass__  = abc.ABCMeta
+
+    @abc.abstractmethod
+    @classmethod
+    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
+        "Create a ReportData object using timeseries data as input."
+
+    @abc.abstractmethod
+    def union(self, other):
+        "Aggregate these two instances. Must be of compatible type."
+
+    @abc.abstractmethod
+    def clone(self):
+        "Create a new object that is an exact copy of this instance."
+
+    @abc.abstractmethod
+    def _confirm_compatibility(self, other):
+        "Make sure these two instances can be unioned."
+
+    @abc.abstractmethod
+    def _confirm_self_consistency(self):
+        "Make sure this instance is self-consistent."
+
+    @abc.abstractmethod
+    def __eq__(self, other):
+        "Instances must have a way of determining equality."
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        return type(self).union(self, other)
+
+class Histogram(ReportData):
     """
     A class for storing a histogram of (quasi) periodic timeseries. In
     the current version, each period is assumed to last for one second.
@@ -358,7 +394,8 @@ class Histogram(object):
             raise ValueError('minimum value of histogram bin range must be smaller than max')
 
         # set values to "empty" histograms
-        if hist     == None: hist        = np.zeros((hist_num_bins, bitrate), dtype=np.int64),
+        if hist == None:
+            hist = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
 
         self.hist_num_bins  = hist_num_bins
         self.hist_range     = hist_range
@@ -368,7 +405,7 @@ class Histogram(object):
         self._version       = version
 
     @classmethod
-    def from_timeseries(cls, timeseries, time_range, bitrate=DEFAULT_BITRATE):
+    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
         # TODO
         raise Exception('not yet implemented')
 
@@ -377,7 +414,7 @@ class Histogram(object):
         Take the union of these two histograms, representing the histogram of
         the union of the two histograms' respective datasets.
         """
-        self.is_compatible_with(other)
+        self._confirm_compatibility(other)
         ans         = self.clone()
         ans.hist    = self.hist + other.hist
         return ans
@@ -391,7 +428,7 @@ class Histogram(object):
             bitrate         = self.bitrate
         )
 
-    def is_compatible_with(self, other):
+    def _confirm_compatibility(self, other):
         if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
             raise ValueError('Histograms have different bin edges')
         if self.bitrate != other.bitrate:
@@ -411,18 +448,12 @@ class Histogram(object):
 
     def __eq__(self, other):
         try:
-            self.is_compatible_with(other)
+            self._confirm_compatibility(other)
         except ValueError:
             return False
         return np.array_equal(self.hist, other.hist)
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __add__(self, other):
-        return type(self).union(self, other)
-
-class Statistics(object):
+class Statistics(ReportData):
     """
     A class for storing diagnostic statistics for the aLIGO timing system.
     Includes methods for iteratively generating, amalgamating, and
@@ -438,6 +469,7 @@ class Statistics(object):
             sum_sq          = None,
             max             = np.iinfo(np.int64).min, # lowest possible max, cannot survive
             min             = np.iinfo(np.int64).max, # same for min
+            num             = 0,
             bitrate         = DEFAULT_BITRATE,
             version         = VERSION):
         """
@@ -453,11 +485,12 @@ class Statistics(object):
         self.sum_sq     = sum_sq
         self.max        = max
         self.min        = min
+        self.num        = num
         self.bitrate    = bitrate
         self._version   = version
 
     @classmethod
-    def from_timeseries(cls, timeseries, time_range, bitrate=DEFAULT_BITRATE):
+    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
         """
         Create a statistics object from timeseries data. The timeseries can be
         an integer multiple of the bitrate, in which case it is interpreted
@@ -471,12 +504,13 @@ class Statistics(object):
         Take the union of these statistics, representing the same statistics
         taken on the union of the two statistics objects' respective datasets.
         """
-        self.is_compatible_with(other)
+        self._confirm_compatibility(other)
         ans         = self.clone()
         ans.sum     = self.sum      + other.sum
         ans.sum_sq  = self.sum_sq   + other.sum_sq
         ans.max     = self.max      + other.max
         ans.min     = self.min      + other.min
+        ans.num     = self.num      + other.num
         return ans
 
     def clone(self):
@@ -486,10 +520,11 @@ class Statistics(object):
             sum_sq          = self.sum_sq,
             max             = self.max,
             min             = self.min,
+            num             = self.num,
             bitrate         = self.bitrate
         )
 
-    def is_compatible_with(self, other):
+    def _confirm_compatibility(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
         if self._version != VERSION:
@@ -507,54 +542,54 @@ class Statistics(object):
 
     def __eq__(self, other):
         try:
-            self.is_compatible_with(other)
+            self._confirm_compatibility(other)
         except ValueError:
             return False
         return (
             np.array_equal(self.sum,    other.sum)      and
             np.array_equal(self.sum_sq, other.sum_sq)   and
             np.array_equal(self.max,    other.max)      and
-            np.array_equal(self.min,    other.min)
+            np.array_equal(self.min,    other.min)      and
+            np.array_equal(self.num,    other.num)
         )
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __add__(self, other):
-        return type(self).union(self, other)
 
 class Report(object):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
     and DuoToneReport.
+
+    The Report class contains information on the time intervals included
+    as well as basic statistics (mean, max, min, standard deviation)
+    on the time intervals included, and finally, multiple histograms
+    covering multiple "zoom" levels, for a tailored view of the data.
     """
     def __init__(self,
-            time_intervals  = TimeIntervalSet(),
-            statistics      = Statistics(),
-            histogram       = Histogram(),
             bitrate         = DEFAULT_BITRATE,
-            version         = VERSION):
-        self.time_intervals = time_intervals
-        self.statistics     = statistics
-        self.histogram      = histogram
+            version         = VERSION,
+            time_intervals  = TimeIntervalSet(),
+            data           = {
+                'histogram': Histogram(),
+                'statistics': Statistics()
+            }):
         self.bitrate        = bitrate
         self._version       = version
+        self.time_intervals = time_intervals
+        self._data          = data              # data 'lives' here
+        self.histogram      = data['histogram'] # pointers maintained for convenience
+        self.statistics     = data['statistics']
         self._confirm_self_consistency()
 
     def _confirm_self_consistency(self):
-        if not (self.bitrate == self.statistics.bitrate == self.histogram.bitrate):
-            raise ValueError('Report constituents have different bitrates')
-        if not (self._version == self.time_intervals._version == self.statistics._version == self.histogram._version):
-            raise ValueError('Report constituents have different versions')
+        for key in self._data:
+            if not isinstance(self._data[key], ReportData):
+                raise ValueError('key ' + str(key) + ' must be instance of ReportData')
+            if self.bitrate != self._data[key].bitrate:
+                raise ValueError('Report constituents have different bitrates')
+            if not (self._version == self.time_intervals._version == self._data[key]._version):
+                raise ValueError('Report constituents have different versions')
         if self._version != VERSION:
             raise ValueError('Report version ' + self._version + ' does not match lib version')
-        if type(self.time_intervals) != TimeIntervalSet:
-            raise ValueError('self.time_intervals must be of type TimeIntervalSet')
-        if type(self.statistics) != Statistics:
-            raise ValueError('self.statistics must be of type Statistics')
-        if type(self.histogram) != Histogram:
-            raise ValueError('self.histogram must be of type Histogram')
 
 # TODO: DT and IRIG report classes; everything should fit into a report;
 # a report contains both statistics and histogram classes.

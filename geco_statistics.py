@@ -543,17 +543,17 @@ class Report(object):
         self._confirm_self_consistency()
 
     def _confirm_self_consistency(self):
-        if not (self.bitrate == self.time_intervals.bitrate == self.statistics.bitrate == self.histogram.bitrate):
+        if not (self.bitrate == self.statistics.bitrate == self.histogram.bitrate):
             raise ValueError('Report constituents have different bitrates')
         if not (self._version == self.time_intervals._version == self.statistics._version == self.histogram._version):
             raise ValueError('Report constituents have different versions')
         if self._version != VERSION:
             raise ValueError('Report version ' + self._version + ' does not match lib version')
-        if type(time_intervals) != TimeIntervalSet:
+        if type(self.time_intervals) != TimeIntervalSet:
             raise ValueError('self.time_intervals must be of type TimeIntervalSet')
-        if type(statistics) != Statistics:
+        if type(self.statistics) != Statistics:
             raise ValueError('self.statistics must be of type Statistics')
-        if type(histogram) != Histogram:
+        if type(self.histogram) != Histogram:
             raise ValueError('self.histogram must be of type Histogram')
 
 # TODO: DT and IRIG report classes; everything should fit into a report;

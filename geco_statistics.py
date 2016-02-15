@@ -11,8 +11,8 @@ VERSION = '0.0.7'
 DEFAULT_BITRATE = 16384
 
 # could use the interval package, but would be one more external dependency
-# TODO: implement TimeIntervalSet using numpy array with doubles as datatype
-class TimeIntervalSet(object):
+# TODO: implement the new __union__ and __clone__ impl. detail methods
+class TimeIntervalSet(ReportInterface):
     """
     TimeIntervalSet
 
@@ -279,19 +279,12 @@ class TimeIntervalSet(object):
     def __eq__(self, other):
         return np.array_equal(self._data, other._data)
 
-    def __ne__(self, other):
-        return not self == other
-
     def __len__(self):
         return len(self._data)
 
     def __mul__(self, other):
         'Multiplication can be used as a shorthand for intersection.'
         return type(self).intersection(self, other)
-
-    def __add__(self, other):
-        'Addition can be used as a shorthand for union.'
-        return type(self).union(self, other)
 
     def __sub__(self, other):
         """
@@ -327,7 +320,7 @@ class TimeIntervalSet(object):
         self._confirm_self_consistency()
         return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
-class ReportData(object):
+class ReportData(ReportInterface):
     "Abstract class for aggregated data. All instances must implement interface."
     __metaclass__  = abc.ABCMeta
 
@@ -336,13 +329,37 @@ class ReportData(object):
     def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
         "Create a ReportData object using timeseries data as input."
 
-    @abc.abstractmethod
+class ReportInterface(object):
+    "Abstract interface used by all geco_statistics classes"
+    __metaclass__  = abc.ABCMeta
+
     def union(self, other):
         "Aggregate these two instances. Must be of compatible type."
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
+        self._confirm_compatibility(other)
+        return self.__union__(other)
 
-    @abc.abstractmethod
     def clone(self):
         "Create a new object that is an exact copy of this instance."
+        self._confirm_self_consistency()
+        return self.__clone__()
+
+    @abc.abstractmethod
+    def __clone__(self):
+        """
+        Create a new object that is an exact copy of this instance without
+        first checking for self-consistency. This is part of the implementation
+        of the clone method.
+        """
+
+    @abc.abstractmethod
+    def __union__(self, other):
+        """
+        Aggregate these two instances without first checking that the instances
+        are compatible or self-consistent. This is part of the implementation
+        of the union method.
+        """
 
     @abc.abstractmethod
     def _confirm_compatibility(self, other):
@@ -360,6 +377,7 @@ class ReportData(object):
         return not self == other
 
     def __add__(self, other):
+        'Addition can be used as a shorthand for union.'
         return type(self).union(self, other)
 
 class Histogram(ReportData):
@@ -650,3 +668,15 @@ class Report(object):
 # TODO: DT and IRIG report classes; everything should fit into a report;
 # TODO: Add ReportSet class and some trivial subclasses. These determine anomalousness.
 # a report contains both statistics and histogram classes.
+
+class ReportSet(ReportInterface):
+    """
+    Abstract class for collections of Reports, allowing for more advanced procedures
+    that allow the user to distinguish between anomalous and typical time ranges in
+    the input data."
+    """
+
+    @classmethod
+    @abc.abstractmethod
+    def anomaly_test(cls, timeseries):
+        "Define a method for testing whether a timeseries is anomalous."

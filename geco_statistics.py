@@ -4,6 +4,7 @@ import os
 import subprocess
 import datetime
 import h5py
+import abc
 import numpy as np
 
 VERSION = '0.0.7'
@@ -54,19 +55,19 @@ class TimeIntervalSet(object):
             [s, e)
         """
         self._version = VERSION
-        if type(intervalSet) == list:
+        if type(intervalSet) == list or type(intervalSet) == numpy.ndarray:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal starts and ends)')
-            elif sorted(intervalSet) != intervalSet:
+            elif not np.array_equal(sorted(intervalSet), intervalSet):
                 raise ValueError('intervalSet must be sorted')
             else:
-                self._data = [float(x) for x in intervalSet]
+                self._data = np.array([float(x) for x in intervalSet])
                 self.remove_empty_sets()
                 self._confirm_self_consistency()
         elif intervalSet == start == end == None or start == end:
-            self._data = []
+            self._data = np.array([])
         elif start < end:
-            self._data = [float(start), float(end)]
+            self._data = np.array([float(start), float(end)])
             self.remove_empty_sets()
             self._confirm_self_consistency()
         else:
@@ -96,13 +97,13 @@ class TimeIntervalSet(object):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = result._data[0:bounds[0]] + [start, end] + result._data[bounds[1]+1:]
+                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [start, end], result._data[bounds[1]+1:]))
             elif left == 0 and right == 0:
-                result._data = result._data[0:bounds[0]] + [start] + result._data[bounds[1]+1:]
+                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [start], result._data[bounds[1]+1:]))
             elif left == 1 and right == 1:
-                result._data = result._data[0:bounds[0]] + [end] + result._data[bounds[1]+1:]
+                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [end], result._data[bounds[1]+1:]))
             elif left == 1 and right == 0:
-                result._data = result._data[0:bounds[0]] + result._data[bounds[1]+1:]
+                result._data = np.concatenate((result._data, result._data[0:bounds[0]], result._data[bounds[1]+1:]))
             result.remove_empty_sets()
         return result
 
@@ -128,13 +129,13 @@ class TimeIntervalSet(object):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data += self._data[bounds[0]:bounds[1]+1]
+                result._data = np.concatenate((result._data, self._data[bounds[0]:bounds[1]+1]))
             elif left == 0 and right == 0:
-                result._data += self._data[bounds[0]:bounds[1]+1] + [end]
+                result._data = np.concatenate((result._data, self._data[bounds[0]:bounds[1]+1], [end]))
             elif left == 1 and right == 1:
-                result._data += [start] + self._data[bounds[0]:bounds[1]+1]
+                result._data = np.concatenate((result._data, [start], self._data[bounds[0]:bounds[1]+1]))
             elif left == 1 and right == 0:
-                result._data += [start] + self._data[bounds[0]:bounds[1]+1] + [end]
+                result._data = np.concatenate((result._data, [start], self._data[bounds[0]:bounds[1]+1], [end]))
             result.remove_empty_sets()
         return result
 
@@ -163,13 +164,13 @@ class TimeIntervalSet(object):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data += [start] + self._data[bounds[0]:bounds[1]+1] + [end]
+                result._data = np.concatenate((result._data, [start], self._data[bounds[0]:bounds[1]+1], [end]))
             elif left == 0 and right == 0:
-                result._data += [start] + self._data[bounds[0]:bounds[1]+1]
+                result._data = np.concatenate((result._data, [start], self._data[bounds[0]:bounds[1]+1]))
             elif left == 1 and right == 1:
-                result._data += self._data[bounds[0]:bounds[1]+1] + [end]
+                result._data = np.concatenate((result._data, self._data[bounds[0]:bounds[1]+1], [end]))
             elif left == 1 and right == 0:
-                result._data += self._data[bounds[0]:bounds[1]+1]
+                result._data = np.concatenate((result._data, self._data[bounds[0]:bounds[1]+1]))
             result.remove_empty_sets()
         return result
 
@@ -218,8 +219,7 @@ class TimeIntervalSet(object):
         i = 0
         while i < len(self._data) - 1:
             if self._data[i] == self._data[i+1]:
-                self._data.pop(i) # remove this instance of the value...
-                self._data.pop(i) # and the one to its right.
+                self._data = np.delete(self._data, np.s_[i:i+2])
             else:
                 i += 1           # not a copy, move on to the next one
 
@@ -262,7 +262,6 @@ class TimeIntervalSet(object):
 
         """
         times = [str(int(x)) for x in self._data]
-        # raise Exception('not yet defined')
         self._confirm_self_consistency()
         tstring = ""
         i = 0
@@ -278,10 +277,10 @@ class TimeIntervalSet(object):
         return tstring
 
     def __eq__(self, other):
-        return self._data == other._data
+        return np.array_equal(self._data, other._data)
 
     def __ne__(self, other):
-        return self._data != other._data
+        return not self == other
 
     def __len__(self):
         return len(self._data)
@@ -315,7 +314,7 @@ class TimeIntervalSet(object):
     def __str__(self):
         'Return a string expressing the object in set union notation'
         self._confirm_self_consistency()
-        if self.__len__() == 0:
+        if len(self) == 0:
             return '{}'
         starts = self._data[0::2]
         ends   = self._data[1::2]
@@ -326,14 +325,14 @@ class TimeIntervalSet(object):
 
     def __repr__(self):
         self._confirm_self_consistency()
-        return 'geco_statistics.TimeIntervalSet(' + repr(self._data) + ')'
+        return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
 class ReportData(object):
     "Abstract class for aggregated data. All instances must implement interface."
     __metaclass__  = abc.ABCMeta
 
-    @abc.abstractmethod
     @classmethod
+    @abc.abstractmethod
     def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
         "Create a ReportData object using timeseries data as input."
 
@@ -358,7 +357,7 @@ class ReportData(object):
         "Instances must have a way of determining equality."
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __add__(self, other):
         return type(self).union(self, other)
@@ -429,14 +428,14 @@ class Histogram(ReportData):
         )
 
     def _confirm_compatibility(self, other):
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
         if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
             raise ValueError('Histograms have different bin edges')
         if self.bitrate != other.bitrate:
             raise ValueError('Histograms have different bitrates')
-        if self._version != VERSION:
-            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
         if self._version != other._version:
-            raise ValueError('Histograms have different bitrates')
+            raise ValueError('Histograms have different versions')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
@@ -525,12 +524,12 @@ class Statistics(ReportData):
         )
 
     def _confirm_compatibility(self, other):
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
-        if self._version != VERSION:
-            raise ValueError('Statistics version ' + self._version + ' does not match lib version')
         if self._version != other._version:
-            raise ValueError('Statistics have different bitrates')
+            raise ValueError('Statistics have different versions')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
@@ -580,7 +579,59 @@ class Report(object):
         self.statistics     = data['statistics']
         self._confirm_self_consistency()
 
+    @classmethod
+    def from_timeseries(cls, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
+        "Create a Report using timeseries information."
+        # TODO
+        raise NotImplementedError()
+
+    def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
+        """
+        Return a new report containing the current report's data along with
+        data gleaned from the timeseries provided as an argument folded in.
+        """
+        return self.union(type(self).from_timeseries(timeseries, time_intervals, bitrate))
+
+    def union(self, other):
+        self._confirm_compatibility(other)
+        ans = self.clone()
+        ans.time_intervals  += other.time_intervals
+        for key in ans._data:
+            ans._data[key] += other._data[key]
+        return ans
+
+    def clone(self):
+        self._confirm_self_consistency()
+        cloned_data = self._data
+        for key in cloned_data:
+            cloned_data[key] = cloned_data[key].clone()
+        return type(self)(
+            bitrate         = self.bitrate,
+            version         = self.version,
+            time_intervals  = self.time_intervals.clone(),
+            data            = cloned_data
+        )
+
+    def _confirm_compatibility(self, other):
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
+        if self.bitrate != other.bitrate:
+            raise ValueError('Reports have different bitrates')
+        if self._version != other._version:
+            raise ValueError('Reports have different versions')
+        if type(self) != type(other):
+            raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
+        if set(self._data) != set(other._data):
+            raise ValueError('ReportData sets do not have matching key sets.')
+        if self.time_intervals.intersection(other.time_intervals) != TimeIntervalSet():
+            raise ValueError('Reports have overlapping time intervals.')
+        return True
+
     def _confirm_self_consistency(self):
+        """
+        Confirm that this Report is self-consistent. It should not generally
+        be necessary to modify this, except perhaps to extend it in subclasses.
+        """
         for key in self._data:
             if not isinstance(self._data[key], ReportData):
                 raise ValueError('key ' + str(key) + ' must be instance of ReportData')
@@ -590,6 +641,12 @@ class Report(object):
                 raise ValueError('Report constituents have different versions')
         if self._version != VERSION:
             raise ValueError('Report version ' + self._version + ' does not match lib version')
+        if not isinstance(self.time_intervals, TimeIntervalSet):
+            raise ValueError('self.time_intervals must be an instance of TimeIntervalSet.')
+
+    def __add__(self, other):
+        return type(self).union(self, other)
 
 # TODO: DT and IRIG report classes; everything should fit into a report;
+# TODO: Add ReportSet class and some trivial subclasses. These determine anomalousness.
 # a report contains both statistics and histogram classes.

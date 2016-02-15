@@ -73,15 +73,13 @@ class TimeIntervalSet(ReportInterface):
         else:
             raise ValueError('Invalid combination of arguments. See documentation.')
 
-    def union(self, other):
+    def __union__(self, other):
         """
         Return the union of the current set of intervals with some other set.
 
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
         if len(other) == 0:
             return self.clone()
         elif len(self) == 0:
@@ -233,7 +231,7 @@ class TimeIntervalSet(ReportInterface):
             raise Exception('TimeIntervalSet corrupted: odd number of endpoints')
         return True
 
-    def clone(self):
+    def __clone__(self):
         return type(self)(self._data)
 
     def combined_length(self):
@@ -346,6 +344,38 @@ class ReportInterface(object):
         return self.__clone__()
 
     @abc.abstractmethod
+    def __to_dict__(self):
+        """
+        Return a dictionary whose elements consist of strings, ints, lists, or
+        numpy.ndarray objects, or of other dicts whose contents follow this
+        pattern recursively. This dictionary must wholly represent the data in
+        this object, so that this object may be totally reconstructed using
+        the dictionary's contents. This is an implementation method used to
+        store data in HDF5.
+        """
+
+    @classmethod
+    @abc.abstractmethod
+    def __from_dict__(cls, dict):
+        """
+        Construct an instance of this class using a dictionary of the form output
+        by self.__to_dict__.
+        """
+
+    @abc.abstractmethod
+    def plot(self):
+        """
+        Create some sort of visualization for the information content of this object.
+        """
+
+    @abc.abstractmethod
+    def summary(self):
+        """
+        Create some sort of verbose, human-readable text summary for the information
+        content of this object.
+        """
+
+    @abc.abstractmethod
     def __clone__(self):
         """
         Create a new object that is an exact copy of this instance without
@@ -426,18 +456,16 @@ class Histogram(ReportData):
         # TODO
         raise Exception('not yet implemented')
 
-    def union(self, other):
+    def __union__(self, other):
         """
         Take the union of these two histograms, representing the histogram of
         the union of the two histograms' respective datasets.
         """
-        self._confirm_compatibility(other)
         ans         = self.clone()
         ans.hist    = self.hist + other.hist
         return ans
 
-    def clone(self):
-        self._confirm_self_consistency()
+    def __clone__(self):
         return type(self)(
             hist            = self.hist,
             hist_range      = self.hist_range,
@@ -516,12 +544,11 @@ class Statistics(ReportData):
         # TODO
         raise Exception('not yet implemented')
 
-    def union(self, other):
+    def __union__(self, other):
         """
         Take the union of these statistics, representing the same statistics
         taken on the union of the two statistics objects' respective datasets.
         """
-        self._confirm_compatibility(other)
         ans         = self.clone()
         ans.sum     = self.sum      + other.sum
         ans.sum_sq  = self.sum_sq   + other.sum_sq
@@ -530,7 +557,7 @@ class Statistics(ReportData):
         ans.num     = self.num      + other.num
         return ans
 
-    def clone(self):
+    def __clone__(self):
         self._confirm_self_consistency()
         return type(self)(
             sum             = self.sum,
@@ -585,10 +612,13 @@ class Report(object):
             bitrate         = DEFAULT_BITRATE,
             version         = VERSION,
             time_intervals  = TimeIntervalSet(),
-            data           = {
-                'histogram': Histogram(),
-                'statistics': Statistics()
-            }):
+            data            = None):
+
+        if data == None:
+            data = {
+                'histogram': Histogram(bitrate=bitrate),
+                'statistics': Statistics(bitrate=bitrate)
+            }
         self.bitrate        = bitrate
         self._version       = version
         self.time_intervals = time_intervals
@@ -610,16 +640,14 @@ class Report(object):
         """
         return self.union(type(self).from_timeseries(timeseries, time_intervals, bitrate))
 
-    def union(self, other):
-        self._confirm_compatibility(other)
+    def __union__(self, other):
         ans = self.clone()
         ans.time_intervals  += other.time_intervals
         for key in ans._data:
             ans._data[key] += other._data[key]
         return ans
 
-    def clone(self):
-        self._confirm_self_consistency()
+    def __clone__(self):
         cloned_data = self._data
         for key in cloned_data:
             cloned_data[key] = cloned_data[key].clone()
@@ -676,7 +704,30 @@ class ReportSet(ReportInterface):
     the input data."
     """
 
+    def __init__(self,
+            bitrate                 = DEFAULT_BITRATE,
+            version                 = VERSION,
+            time_intervals          = TimeIntervalSet(),
+            report                  = None,
+            report_anomalies_only   = None,
+            report_sans_anomalies   = None,
+            missing_times           = TimeIntervalSet()):
+        "Initialize a new ReportSet. This should be customized in subclasses."
+        # TODO:
+        raise NotImplementedError()
+
     @classmethod
     @abc.abstractmethod
     def anomaly_test(cls, timeseries):
         "Define a method for testing whether a timeseries is anomalous."
+
+    def save_hdf5(self, filename):
+        """Save this instance to an hdf5 file."""
+        # TODO
+        raise NotImplementedError
+
+    @classmethod
+    def load_hdf5(cls, filename):
+        """Load an instance saved in an hdf5 file."""
+        # TODO:
+        raise NotImplementedError()

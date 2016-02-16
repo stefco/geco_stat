@@ -7,11 +7,111 @@ import h5py
 import abc
 import numpy as np
 
-VERSION = '0.0.7'
+VERSION = '0.0.8'
 DEFAULT_BITRATE = 16384
 
 # could use the interval package, but would be one more external dependency
 # TODO: implement the new __union__ and __clone__ impl. detail methods
+class VersionError(Exception):
+    """
+    For when the user attempts to instantiate an object using a
+    datastructure from a different version number of the class.
+    """
+
+class ReportInterface(object):
+    "Abstract interface used by all geco_statistics classes"
+    __metaclass__  = abc.ABCMeta
+    _version = VERSION
+
+    def union(self, other):
+        "Aggregate these two instances. Must be of compatible type."
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
+        self._confirm_compatibility(other)
+        return self.__union__(other)
+
+    def clone(self):
+        "Create a new object that is an exact copy of this instance."
+        self._confirm_self_consistency()
+        return self.__clone__()
+
+    @abc.abstractmethod
+    def __to_dict__(self):
+        """
+        Return a dictionary whose elements consist of strings, ints, lists, or
+        numpy.ndarray objects, or of other dicts whose contents follow this
+        pattern recursively. This dictionary must wholly represent the data in
+        this object, so that this object may be totally reconstructed using
+        the dictionary's contents. This is an implementation method used to
+        store data in HDF5.
+        """
+
+    @abc.abstractmethod
+    def __from_dict__(cls, dict):
+        """
+        Construct an instance of this class using a dictionary of the form output
+        by self.__to_dict__. Should generally be a class method.
+        """
+
+    @abc.abstractmethod
+    def __clone__(self):
+        """
+        Create a new object that is an exact copy of this instance without
+        first checking for self-consistency. This is part of the implementation
+        of the clone method.
+        """
+
+    @abc.abstractmethod
+    def __union__(self, other):
+        """
+        Aggregate these two instances without first checking that the instances
+        are compatible or self-consistent. This is part of the implementation
+        of the union method.
+        """
+
+    @abc.abstractmethod
+    def _confirm_compatibility(self, other):
+        "Make sure these two instances can be unioned."
+
+    @abc.abstractmethod
+    def _confirm_self_consistency(self):
+        "Make sure this instance is self-consistent."
+
+    @abc.abstractmethod
+    def __eq__(self, other):
+        "Instances must have a way of determining equality."
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __add__(self, other):
+        'Addition can be used as a shorthand for union.'
+        return type(self).union(self, other)
+
+class Plottable(ReportInterface):
+    """
+    An interface for generating matplotlib figures that can be used in
+    visualizing data.
+    """
+    __metaclass__  = abc.ABCMeta
+
+    @abc.abstractmethod
+    def plot(self):
+        """
+        Create some sort of visualization for the information content of this
+        object. Container objects should use this to
+        recursively call plotting functions in their constituents and generate
+        summary plots representing all their information.
+        """
+
+    @abc.abstractmethod
+    def summary(self):
+        """
+        Create some sort of verbose, human-readable text summary for the information
+        content of this object. Should return a string.
+        """
+
+# TODO: Make Plottable
 class TimeIntervalSet(ReportInterface):
     """
     TimeIntervalSet
@@ -32,7 +132,7 @@ class TimeIntervalSet(ReportInterface):
     potentially dangerous side-effects.
     """
 
-    def __init__(self, intervalSet=None, start=None, end=None):
+    def __init__(self, intervalSet=None, start=None, end=None, version=VERSION):
         """
         If no time interval is given at initialization, the TimeIntervalSet
         begins empty. There are two ways to initialize it with a nonempty set
@@ -54,7 +154,8 @@ class TimeIntervalSet(ReportInterface):
 
             [s, e)
         """
-        self._version = VERSION
+        if version != self._version:
+            raise VersionError()
         if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal starts and ends)')
@@ -221,11 +322,20 @@ class TimeIntervalSet(ReportInterface):
             else:
                 i += 1           # not a copy, move on to the next one
 
+    def _confirm_compatibility(self, other):
+        self._confirm_self_consistency()
+        other._confirm_self_consistency()
+        if type(self) != type(other):
+            raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
+        if self._version != other._version:
+            raise ValueError('TimeIntervalSets have different versions')
+        return True
+
     def _confirm_self_consistency(self):
         'Check that this instance has form consistent with the class spec'
-        if type(self._data) != list:
-            raise Exception('TimeIntervalSet corrupted: data not a list')
-        elif sorted(self._data) != self._data:
+        if type(self._data) != np.ndarray:
+            raise Exception('TimeIntervalSet corrupted: data not a numpy.ndarray')
+        elif not np.array_equal(sorted(self._data), self._data):
             raise Exception('TimeIntervalSet corrupted: data not sorted')
         elif len(self._data) % 2 != 0:
             raise Exception('TimeIntervalSet corrupted: odd number of endpoints')
@@ -274,6 +384,13 @@ class TimeIntervalSet(ReportInterface):
         tstring = tstring[:-3] # shave off the last U character and newline
         return tstring
 
+    @classmethod
+    def __from_dict__(cls, dict):
+        return cls(dict['data'], version=dict['version'])
+
+    def __to_dict__(self):
+        return {'data': self._data, 'version': self._version}
+
     def __eq__(self, other):
         return np.array_equal(self._data, other._data)
 
@@ -318,98 +435,45 @@ class TimeIntervalSet(ReportInterface):
         self._confirm_self_consistency()
         return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
+# TODO: Make Plottable
 class ReportData(ReportInterface):
     "Abstract class for aggregated data. All instances must implement interface."
     __metaclass__  = abc.ABCMeta
 
-    @classmethod
-    @abc.abstractmethod
-    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
-        "Create a ReportData object using timeseries data as input."
-
-class ReportInterface(object):
-    "Abstract interface used by all geco_statistics classes"
-    __metaclass__  = abc.ABCMeta
-
-    def union(self, other):
-        "Aggregate these two instances. Must be of compatible type."
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
-        self._confirm_compatibility(other)
-        return self.__union__(other)
-
-    def clone(self):
-        "Create a new object that is an exact copy of this instance."
-        self._confirm_self_consistency()
-        return self.__clone__()
-
-    @abc.abstractmethod
-    def __to_dict__(self):
+    def from_timeseries(self, timeseries):
         """
-        Return a dictionary whose elements consist of strings, ints, lists, or
-        numpy.ndarray objects, or of other dicts whose contents follow this
-        pattern recursively. This dictionary must wholly represent the data in
-        this object, so that this object may be totally reconstructed using
-        the dictionary's contents. This is an implementation method used to
-        store data in HDF5.
-        """
+        Create a ReportData object using timeseries data as input. This is
+        an instance method, meant to create a new object compatible with
+        the current instance; this approach allows for a trivially
+        simple method interface, requiring only the timeseries array itself
+        as input.
 
-    @classmethod
-    @abc.abstractmethod
-    def __from_dict__(cls, dict):
+        The timeseries argument can be composed of multiple rows, representing
+        multiple seconds, worth of data. It can also simply consist of an
+        integer number of seconds worth of data. Consequently, the length of
+        the (flattened) input timeseries must be an integer multiple of the
+        bitrate.
         """
-        Construct an instance of this class using a dictionary of the form output
-        by self.__to_dict__.
-        """
+        timeseries = np.array(timeseries)
+        l = len(timeseries.flatten())
+        if l % self.bitrate != 0:
+            raise ValueError('Flattened timeseries length must be integer mult of bitrate.')
+        if l == 0:
+            raise ValueError('Cannot pass an empty timeseries.')
+        ans = self.__from_single_second_timeseries__(timeseries)
+        for i in np.arange(1, l/bitrate):
+            ans += self.__from_single_second_timeseries__(timeseries)
+        return ans
 
     @abc.abstractmethod
-    def plot(self):
+    def __from_single_second_timeseries__(self, timeseries):
         """
-        Create some sort of visualization for the information content of this object.
-        """
-
-    @abc.abstractmethod
-    def summary(self):
-        """
-        Create some sort of verbose, human-readable text summary for the information
-        content of this object.
+        Return an instance of this class initiated using only a single second
+        of timeseries data as input. The timeseries used must therefore have
+        length equal to the bitrate. THIS MAY BE ASSUMED BY THE METHOD.
         """
 
-    @abc.abstractmethod
-    def __clone__(self):
-        """
-        Create a new object that is an exact copy of this instance without
-        first checking for self-consistency. This is part of the implementation
-        of the clone method.
-        """
-
-    @abc.abstractmethod
-    def __union__(self, other):
-        """
-        Aggregate these two instances without first checking that the instances
-        are compatible or self-consistent. This is part of the implementation
-        of the union method.
-        """
-
-    @abc.abstractmethod
-    def _confirm_compatibility(self, other):
-        "Make sure these two instances can be unioned."
-
-    @abc.abstractmethod
-    def _confirm_self_consistency(self):
-        "Make sure this instance is self-consistent."
-
-    @abc.abstractmethod
-    def __eq__(self, other):
-        "Instances must have a way of determining equality."
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __add__(self, other):
-        'Addition can be used as a shorthand for union.'
-        return type(self).union(self, other)
-
+# TODO: Make Plottable
 class Histogram(ReportData):
     """
     A class for storing a histogram of (quasi) periodic timeseries. In
@@ -437,6 +501,8 @@ class Histogram(ReportData):
         # make sure hist_range is an ordered pair of numbers
         if not len(hist_range) == 2:
             raise ValueError('second argument (hist_range) must have length 2')
+        if version != self._version:
+            raise VersionError()
         elif hist_range[0] >= hist_range[1]:
             raise ValueError('minimum value of histogram bin range must be smaller than max')
 
@@ -448,13 +514,8 @@ class Histogram(ReportData):
         self.hist_range     = hist_range
         self.hist           = hist
         self.hist_bins      = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
+        self._t_ticks       = np.linspace(0,1,16384,endpoint=False)
         self.bitrate        = bitrate
-        self._version       = version
-
-    @classmethod
-    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
-        # TODO
-        raise Exception('not yet implemented')
 
     def __union__(self, other):
         """
@@ -491,6 +552,15 @@ class Histogram(ReportData):
             raise ValueError('Histogram version ' + self._version + ' does not match lib version')
         return True
 
+    @classmethod
+    def __from_dict__(cls, dict):
+        # TODO
+        raise NotImplementedError()
+
+    def __to_dict__(self):
+        # TODO
+        raise NotImplementedError()
+
     def __eq__(self, other):
         try:
             self._confirm_compatibility(other)
@@ -498,6 +568,7 @@ class Histogram(ReportData):
             return False
         return np.array_equal(self.hist, other.hist)
 
+# TODO: Make Plottable
 class Statistics(ReportData):
     """
     A class for storing diagnostic statistics for the aLIGO timing system.
@@ -521,6 +592,8 @@ class Statistics(ReportData):
         All properties have default values corresponding to an empty statistics
         set; they can be individually overridden.
         """
+        if version != self._version:
+            raise VersionError()
         # set values of sum, sum_sq, and the histograms, since these depend on
         # bitrate and hist_num_bins and hence cannot be set above
         if sum          == None: sum         = np.zeros(bitrate)
@@ -532,17 +605,6 @@ class Statistics(ReportData):
         self.min        = min
         self.num        = num
         self.bitrate    = bitrate
-        self._version   = version
-
-    @classmethod
-    def from_timeseries(cls, timeseries, bitrate=DEFAULT_BITRATE):
-        """
-        Create a statistics object from timeseries data. The timeseries can be
-        an integer multiple of the bitrate, in which case it is interpreted
-        as comprising multiple seconds worth of data.
-        """
-        # TODO
-        raise Exception('not yet implemented')
 
     def __union__(self, other):
         """
@@ -584,6 +646,15 @@ class Statistics(ReportData):
             raise ValueError('Statistics version ' + self._version + ' does not match lib version')
         return True
 
+    @classmethod
+    def __from_dict__(cls, dict):
+        # TODO
+        raise NotImplementedError()
+
+    def __to_dict__(self):
+        # TODO
+        raise NotImplementedError()
+
     def __eq__(self, other):
         try:
             self._confirm_compatibility(other)
@@ -597,7 +668,8 @@ class Statistics(ReportData):
             np.array_equal(self.num,    other.num)
         )
 
-class Report(object):
+# TODO: Make Plottable
+class Report(ReportInterface):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
@@ -614,24 +686,20 @@ class Report(object):
             time_intervals  = TimeIntervalSet(),
             data            = None):
 
+        if version != self._version:
+            raise VersionError()
+
         if data == None:
             data = {
                 'histogram': Histogram(bitrate=bitrate),
                 'statistics': Statistics(bitrate=bitrate)
             }
         self.bitrate        = bitrate
-        self._version       = version
         self.time_intervals = time_intervals
         self._data          = data              # data 'lives' here
         self.histogram      = data['histogram'] # pointers maintained for convenience
         self.statistics     = data['statistics']
         self._confirm_self_consistency()
-
-    @classmethod
-    def from_timeseries(cls, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
-        "Create a Report using timeseries information."
-        # TODO
-        raise NotImplementedError()
 
     def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
         """
@@ -713,6 +781,9 @@ class ReportSet(ReportInterface):
             report_sans_anomalies   = None,
             missing_times           = TimeIntervalSet()):
         "Initialize a new ReportSet. This should be customized in subclasses."
+        if version != self._version:
+            raise VersionError()
+
         # TODO:
         raise NotImplementedError()
 

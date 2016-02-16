@@ -744,10 +744,9 @@ class Report(ReportInterface):
         self.time_intervals = time_intervals
         self._data          = data      # data grouped here
         for key in data:                # pointers maintained for convenience
-            if hasattr(self.__dict__, key):
+            if hasattr(self, key):
                 raise ValueError('ReportData dictionary should not have attributes conflicting with Report attributes.')
-            self.__dict__[key] = data[key]
-            # TODO: check for method names
+            setattr(self, key, data[key])
         self._confirm_self_consistency()
 
     def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):

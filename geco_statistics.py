@@ -385,8 +385,8 @@ class TimeIntervalSet(ReportInterface):
         return tstring
 
     @classmethod
-    def __from_dict__(cls, dict):
-        return cls(dict['data'], version=dict['version'])
+    def __from_dict__(cls, d):
+        return cls(d['data'], version=d['version'])
 
     def __to_dict__(self):
         return {'data': self._data, 'version': self._version}
@@ -553,11 +553,26 @@ class Histogram(ReportData):
         return True
 
     @classmethod
-    def __from_dict__(cls, dict):
-        # TODO
-        raise NotImplementedError()
+    def __from_dict__(cls, d):
+        return cls(
+            hist            = d['hist'],
+            hist_range      = d['hist_range'],
+            hist_num_bins   = d['hist_num_bins'],
+            bitrate         = d['bitrate'],
+            version         = d['version']
+        )
 
     def __to_dict__(self):
+        return {
+            'hist': self.hist,
+            'hist_range': self.hist_range,
+            'hist_num_bins': self.hist_num_bins,
+            'bitrate': self.bitrate,
+            'version': self._version,
+            'class': 'Histogram'
+        }
+
+    def __from_single_second_timeseries__(self, timeseries):
         # TODO
         raise NotImplementedError()
 
@@ -647,11 +662,30 @@ class Statistics(ReportData):
         return True
 
     @classmethod
-    def __from_dict__(cls, dict):
-        # TODO
-        raise NotImplementedError()
+    def __from_dict__(cls, d):
+        return cls(
+            sum     = d['sum'],
+            sum_sq  = d['sum_sq'],
+            max     = d['max'],
+            min     = d['min'],
+            num     = d['num'],
+            bitrate = d['bitrate'],
+            version = d['version']
+        )
 
     def __to_dict__(self):
+        return {
+            'sum':      self.sum,
+            'sum_sq':   self.sum_sq,
+            'max':      self.max,
+            'min':      self.min,
+            'num':      self.num,
+            'bitrate':  self.bitrate,
+            'version':  self._version,
+            'class':    'Statistics'
+        }
+
+    def __from_single_second_timeseries__(self, timeseries):
         # TODO
         raise NotImplementedError()
 
@@ -679,6 +713,18 @@ class Report(ReportInterface):
     as well as basic statistics (mean, max, min, standard deviation)
     on the time intervals included, and finally, multiple histograms
     covering multiple "zoom" levels, for a tailored view of the data.
+
+    Arguments
+    ---------
+    bitrate         the bitrate of the signal considered. defaults to 16384.
+
+    time_intervals  the time intervals over which the data used to create
+                    the report were recorded. defaults to an empty time
+                    interval.
+
+    data            a dictionary containing ReportData objects. defaults to
+                    an empty histogram and an empty statistics instance with
+                    the same bitrate.
     """
     def __init__(self,
             bitrate         = DEFAULT_BITRATE,
@@ -696,9 +742,12 @@ class Report(ReportInterface):
             }
         self.bitrate        = bitrate
         self.time_intervals = time_intervals
-        self._data          = data              # data 'lives' here
-        self.histogram      = data['histogram'] # pointers maintained for convenience
-        self.statistics     = data['statistics']
+        self._data          = data      # data grouped here
+        for key in data:                # pointers maintained for convenience
+            if hasattr(self.__dict__, key):
+                raise ValueError('ReportData dictionary should not have attributes conflicting with Report attributes.')
+            self.__dict__[key] = data[key]
+            # TODO: check for method names
         self._confirm_self_consistency()
 
     def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
@@ -758,8 +807,49 @@ class Report(ReportInterface):
         if not isinstance(self.time_intervals, TimeIntervalSet):
             raise ValueError('self.time_intervals must be an instance of TimeIntervalSet.')
 
-    def __add__(self, other):
-        return type(self).union(self, other)
+    @classmethod
+    def __from_dict__(cls, d):
+        data = dict()
+        data_dict = d['data']
+        for key in data_dict:
+            # for each ReportData dict, confirm it is a subclass and then 
+            # initialize from dictionary
+            report_data_class = globals()[ data_dict[key]['class'] ]
+            if not issubclass(report_data_class, ReportData):
+                raise ValueError('Cannot reconstruct Report data; class property not a valid ReportData subclass')
+            data[key] = report_data_class.__from_dict__(data_dict[key])
+        return cls(
+            bitrate         = d['bitrate'],
+            version         = d['version'],
+            time_intervals  = TimeIntervalSet.__from_dict__(d['time_intervals']),
+            data            = data
+        )
+
+        #TODO
+        raise NotImplementedError()
+
+    def __to_dict__(self):
+        data = dict()
+        for key in self._data:
+            data[key] = self._data[key].__to_dict__()
+        return {
+            'bitrate':          self.bitrate,
+            'version':          self._version,
+            'time_intervals':   self.time_intervals.__to_dict__(),
+            'data':             data
+        }
+
+    def __eq__(self, other):
+        if type(self) != type(other) or set(self._data) != set(other._data):
+            return False
+        if self.bitrate != other.bitrate or self._version != other._version:
+            return False
+        if self.time_intervals != other.time_intervals:
+            return False
+        for key in self._data:
+            if self._data[key] != other._data[key]:
+                return False
+        return True
 
 # TODO: DT and IRIG report classes; everything should fit into a report;
 # TODO: Add ReportSet class and some trivial subclasses. These determine anomalousness.

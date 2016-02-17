@@ -10,14 +10,87 @@ import numpy as np
 VERSION = '0.0.8'
 DEFAULT_BITRATE = 16384
 
-# could use the interval package, but would be one more external dependency
-# TODO: implement the new __union__ and __clone__ impl. detail methods
 class VersionError(Exception):
     """
     For when the user attempts to instantiate an object using a
     datastructure from a different version number of the class.
     """
 
+class MissingChannelDataException(Exception):
+    """
+    For when an attempt has been made to fetch a timeseries for
+    a given time interval, but no data has been found, or the
+    data request has timed out.
+    """
+
+class Timeseries(np.ndarray):
+    """
+    A thin wrapper for ndarrays, adding in a couple of convenience methods
+    used to create new instances from gravitational wave frame files.
+    """
+
+    @classmethod
+    def from_frame_file(cls, channel, path, bitrate):
+        """
+        Load channel from file path to array.
+
+        If a channel doesn't exist within the
+        frame file located at the specified path, this function will return None.
+        Otherwise, it returns an ndarray with one row for each second of data in the
+        frame file.
+        """
+
+        # make sure path exists
+        if not os.path.exists(path):
+            raise ValueError('Path does not exist: ' + path)
+
+        # set up the processes for acquiring and processing the data
+        dump = subprocess.Popen(["framecpp_dump_channel","--channel",channel,path], stdout=subprocess.PIPE)
+        data_string = dump.communicate()[0]
+        print now() + ' Timeseries retrieved, beginning processing.'
+
+        # remove headers from the data
+        formatted_data_string = __remove_header_and_text__(data_string)
+
+        # if the string is empty, the channel didn't exist. return None.
+        if formatted_data_string == '':
+            raise MissingChannelDataException()
+
+        # instantiate numpy array and return it; will have number of rows equal to
+        # the number of seconds in a frame file and number of columns equal to the
+        # bitrate of the channel.
+        return np.fromstring(formatted_data_string, sep=',').reshape((sec_per_frame, bitrate)).view(cls)
+
+    @staticmethod
+    def __remove_lines__(string, num_lines):
+        """
+        remove first n lines of a string
+        """
+        i = 0
+        n = 0
+        l = len(string)
+        while n < num_lines:
+            i = string.find('\n', i+1)
+            # if a newline isn't found, this means there are no new lines left.
+            if i == -1:
+                return ""
+            # if the string ends on a newline, return empty string.
+            elif i+1 == l:
+                return ""
+            n += 1
+        return string[i+1:]
+
+    @staticmethod
+    def __remove_header_and_text__(string):
+        """
+        Delete first 6 lines; all spaces; and the word 'Data:' which precedes the
+        numerical data.
+
+        (This replaces sed and tr in the original implementation with native python.)
+        """
+        return __remove_lines__(string, 6).translate(None, 'Dat: ')
+
+# could use the interval package, but would be one more external dependency
 class ReportInterface(object):
     "Abstract interface used by all geco_statistics classes"
     __metaclass__  = abc.ABCMeta
@@ -27,7 +100,7 @@ class ReportInterface(object):
         "Aggregate these two instances. Must be of compatible type."
         self._confirm_self_consistency()
         other._confirm_self_consistency()
-        self._confirm_compatibility(other)
+        self._confirm_unionability(other)
         return self.__union__(other)
 
     def clone(self):
@@ -70,7 +143,7 @@ class ReportInterface(object):
         """
 
     @abc.abstractmethod
-    def _confirm_compatibility(self, other):
+    def _confirm_unionability(self, other):
         "Make sure these two instances can be unioned."
 
     @abc.abstractmethod
@@ -87,6 +160,23 @@ class ReportInterface(object):
     def __add__(self, other):
         'Addition can be used as a shorthand for union.'
         return type(self).union(self, other)
+
+class ReportInterfaceWithDictToHDF5(ReportInterface):
+    """
+    Class providing methods for saving and loading objects that can be serialized into dicts
+    using HDF5.
+    """
+
+    def save_hdf5(self, filename):
+        """Save this instance to an hdf5 file."""
+        # TODO: Implement
+        raise NotImplementedError()
+
+    @classmethod
+    def load_hdf5(cls, filename):
+        """Load an instance saved in an hdf5 file."""
+        # TODO: Implement
+        raise NotImplementedError()
 
 class Plottable(ReportInterface):
     """
@@ -322,9 +412,7 @@ class TimeIntervalSet(ReportInterface):
             else:
                 i += 1           # not a copy, move on to the next one
 
-    def _confirm_compatibility(self, other):
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+    def _confirm_unionability(self, other):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         if self._version != other._version:
@@ -512,9 +600,9 @@ class Histogram(ReportData):
 
         self.hist_num_bins  = hist_num_bins
         self.hist_range     = hist_range
-        self.hist           = hist
+        self.hist           = np.array(hist, copy=True) # Make sure this is a copy of the data
         self.hist_bins      = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
-        self._t_ticks       = np.linspace(0,1,16384,endpoint=False)
+        self._t_ticks       = np.linspace(0,1,bitrate,endpoint=False)
         self.bitrate        = bitrate
 
     def __union__(self, other):
@@ -534,9 +622,7 @@ class Histogram(ReportData):
             bitrate         = self.bitrate
         )
 
-    def _confirm_compatibility(self, other):
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+    def _confirm_unionability(self, other):
         if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
             raise ValueError('Histograms have different bin edges')
         if self.bitrate != other.bitrate:
@@ -577,9 +663,13 @@ class Histogram(ReportData):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        try:
-            self._confirm_compatibility(other)
-        except ValueError:
+        if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
+            return False
+        if self.bitrate != other.bitrate:
+            return False
+        if self._version != other._version:
+            return False
+        if type(self) != type(other):
             return False
         return np.array_equal(self.hist, other.hist)
 
@@ -598,8 +688,8 @@ class Statistics(ReportData):
     def __init__(self,
             sum             = None,
             sum_sq          = None,
-            max             = np.iinfo(np.int64).min, # lowest possible max, cannot survive
-            min             = np.iinfo(np.int64).max, # same for min
+            max             = None,
+            min             = None,
             num             = 0,
             bitrate         = DEFAULT_BITRATE,
             version         = VERSION):
@@ -609,15 +699,18 @@ class Statistics(ReportData):
         """
         if version != self._version:
             raise VersionError()
+
         # set values of sum, sum_sq, and the histograms, since these depend on
         # bitrate and hist_num_bins and hence cannot be set above
-        if sum          == None: sum         = np.zeros(bitrate)
-        if sum_sq       == None: sum_sq      = np.zeros(bitrate)
+        if sum          == None: sum        = np.zeros(bitrate)
+        if sum_sq       == None: sum_sq     = np.zeros(bitrate)
+        if max          == None: max        = np.ones(bitrate) * np.finfo(np.float64).min # lowest possible max, cannot survive
+        if min          == None: min        = np.ones(bitrate) * np.finfo(np.float64).max # same for min
 
-        self.sum        = sum
-        self.sum_sq     = sum_sq
-        self.max        = max
-        self.min        = min
+        self.sum        = np.array(sum, copy=True)
+        self.sum_sq     = np.array(sum_sq, copy=True)
+        self.max        = np.array(max, copy=True)
+        self.min        = np.array(min, copy=True)
         self.num        = num
         self.bitrate    = bitrate
 
@@ -645,9 +738,7 @@ class Statistics(ReportData):
             bitrate         = self.bitrate
         )
 
-    def _confirm_compatibility(self, other):
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+    def _confirm_unionability(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
         if self._version != other._version:
@@ -659,6 +750,8 @@ class Statistics(ReportData):
     def _confirm_self_consistency(self):
         if self._version != VERSION:
             raise ValueError('Statistics version ' + self._version + ' does not match lib version')
+        if not ((self.bitrate,) == self.sum.shape == self.sum_sq.shape == self.max.shape == self.min.shape):
+            raise ValueError('Statistics fields must be 1-D with length equal to bitrate')
         return True
 
     @classmethod
@@ -690,9 +783,11 @@ class Statistics(ReportData):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        try:
-            self._confirm_compatibility(other)
-        except ValueError:
+        if self.bitrate != other.bitrate:
+            return False
+        if self._version != other._version:
+            return False
+        if type(self) != type(other):
             return False
         return (
             np.array_equal(self.sum,    other.sum)      and
@@ -729,7 +824,7 @@ class Report(ReportInterface):
     def __init__(self,
             bitrate         = DEFAULT_BITRATE,
             version         = VERSION,
-            time_intervals  = TimeIntervalSet(),
+            time_intervals  = None,
             data            = None):
 
         if version != self._version:
@@ -741,9 +836,13 @@ class Report(ReportInterface):
                 'statistics': Statistics(bitrate=bitrate)
             }
         self.bitrate        = bitrate
-        self.time_intervals = time_intervals
+        if time_intervals == None:
+            self.time_intervals = TimeIntervalSet()
+        else:
+            self.time_intervals = time_intervals.clone()
+
         self._data          = data      # data grouped here
-        for key in data:                # pointers maintained for convenience
+        for key in data:                # instance attr pointers for convenience
             if hasattr(self, key):
                 raise ValueError('ReportData dictionary should not have attributes conflicting with Report attributes.')
             setattr(self, key, data[key])
@@ -774,9 +873,7 @@ class Report(ReportInterface):
             data            = cloned_data
         )
 
-    def _confirm_compatibility(self, other):
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+    def _confirm_unionability(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Reports have different bitrates')
         if self._version != other._version:
@@ -797,14 +894,15 @@ class Report(ReportInterface):
         for key in self._data:
             if not isinstance(self._data[key], ReportData):
                 raise ValueError('key ' + str(key) + ' must be instance of ReportData')
+            self._data[key]._confirm_self_consistency()
             if self.bitrate != self._data[key].bitrate:
                 raise ValueError('Report constituents have different bitrates')
-            if not (self._version == self.time_intervals._version == self._data[key]._version):
+            if self._version != self._data[key]._version:
                 raise ValueError('Report constituents have different versions')
-        if self._version != VERSION:
-            raise ValueError('Report version ' + self._version + ' does not match lib version')
         if not isinstance(self.time_intervals, TimeIntervalSet):
             raise ValueError('self.time_intervals must be an instance of TimeIntervalSet.')
+        if self._version != self.time_intervals._version:
+            raise ValueError('time_intervals has different version than the Report itself')
 
     @classmethod
     def __from_dict__(cls, d):
@@ -812,7 +910,11 @@ class Report(ReportInterface):
         data_dict = d['data']
         for key in data_dict:
             # for each ReportData dict, confirm it is a subclass and then 
-            # initialize from dictionary
+            # initialize from dictionary. note that THIS ONLY WORKS FOR
+            # CLASSES DECLARED WITHIN THIS DOCUMENT due to lexical scoping.
+            # an alternative implementation could be used in the future if
+            # it ever became important to allow multiple source files or
+            # interactive prototyping.
             report_data_class = globals()[ data_dict[key]['class'] ]
             if not issubclass(report_data_class, ReportData):
                 raise ValueError('Cannot reconstruct Report data; class property not a valid ReportData subclass')
@@ -823,9 +925,6 @@ class Report(ReportInterface):
             time_intervals  = TimeIntervalSet.__from_dict__(d['time_intervals']),
             data            = data
         )
-
-        #TODO
-        raise NotImplementedError()
 
     def __to_dict__(self):
         data = dict()
@@ -850,44 +949,195 @@ class Report(ReportInterface):
                 return False
         return True
 
-# TODO: DT and IRIG report classes; everything should fit into a report;
-# TODO: Add ReportSet class and some trivial subclasses. These determine anomalousness.
-# a report contains both statistics and histogram classes.
-
-class ReportSet(ReportInterface):
+class AbstractReportSet(ReportInterfaceWithDictToHDF5):
     """
     Abstract class for collections of Reports, allowing for more advanced procedures
     that allow the user to distinguish between anomalous and typical time ranges in
-    the input data."
+    the input data.
+    
+    Subclasses of ReportSet should have the same attributes and
+    should only differ in constructor interface (nested Report instances should
+    have forms specific to the type of signal being analyzed, and these setup details
+    should be part of the subclass initializer) and in anomaly identification
+    method.
     """
+    __metaclass__  = abc.ABCMeta
 
+
+    # TODO Add description
     def __init__(self,
             bitrate                 = DEFAULT_BITRATE,
             version                 = VERSION,
-            time_intervals          = TimeIntervalSet(),
+            channel_name            = "blank_report",
+            time_intervals          = None,
             report                  = None,
             report_anomalies_only   = None,
             report_sans_anomalies   = None,
-            missing_times           = TimeIntervalSet()):
+            missing_times           = None):
         "Initialize a new ReportSet. This should be customized in subclasses."
         if version != self._version:
             raise VersionError()
 
-        # TODO:
-        raise NotImplementedError()
+        if time_intervals == None:
+            self.time_intervals         = TimeIntervalSet()
+        else:
+            self.time_intervals         = time_intervals.clone()
+
+        if missing_times == None:
+            self.missing_times          = TimeIntervalSet()
+        else:
+            self.missing_times          = missing_times.clone()
+
+        # All or none of the three reports must be provided as arguments,
+        # otherwise it would be possible to initialize an inconsistent ReportSet.
+        if None == report == report_anomalies_only == report_sans_anomalies:
+            self.report                 = Report(bitrate=bitrate)
+            self.report_anomalies_only  = Report(bitrate=bitrate)
+            self.report_sans_anomalies  = Report(bitrate=bitrate)
+        else:
+            self.report                 = report.clone()
+            self.report_anomalies_only  = report_anomalies_only.clone()
+            self.report_sans_anomalies  = report_sans_anomalies.clone()
+
+        self.bitrate                = bitrate
+        self.channel_name           = channel_name
+
+        self._confirm_self_consistency()
 
     @classmethod
+    def from_time_and_channel(cls, channel, path, bitrate):
+        """
+        Each subclass of AbstractReportSet should have its own well-defined
+        constructor that rejects initialization data that would lead to an
+        instance un-unionable with a new blank instance of that subclass.
+
+        This can be confirmed by checking at the end of initialization that the
+        new instance is unionable with a new blank instance.
+        """
+        # TODO: Implement
+        raise NotImplementedError()
+
+    @staticmethod
     @abc.abstractmethod
-    def anomaly_test(cls, timeseries):
-        "Define a method for testing whether a timeseries is anomalous."
+    def anomaly_test(timeseries):
+        """
+        MUST BE A STATICMETHOD.
 
-    def save_hdf5(self, filename):
-        """Save this instance to an hdf5 file."""
-        # TODO
-        raise NotImplementedError
+        Define a method for testing whether a timeseries is anomalous. If so, the
+        report generated from this timeseries will be unioned into report_anomalies_only.
+        If not, the report generated from this timeseries will be unioned
+        into report_sans_anomalies. In any case, the report will be unioned into
+        report, which contains report data on the entire timeseries contained in
+        the ReportSet.
+        """
+
+    def _confirm_self_consistency(self):
+        # TODO: make sure the r.__name__ business below works
+        for r in self.report, self.report_anomalies_only, self.report_sans_anomalies:
+            if not isinstance(r, Report):
+                raise ValueError('key ' + r.__name__ + ' must be instance of Report')
+            r._confirm_self_consistency()
+            if self.bitrate != r.bitrate:
+                raise ValueError('key ' + r.__name__ + ' has different bitrate than this ReportSet')
+            if self._version != r._version:
+                raise ValueError('key ' + r.__name__ + ' has different version than this ReportSet')
+        for t in self.time_intervals, self.missing_times:
+            if not isinstance(t, TimeIntervalSet):
+                raise ValueError('key ' + t.__name__ + ' must be instance of TimeIntervalSet')
+            t._confirm_self_consistency()
+            if self._version != t._version:
+                raise ValueError('key ' + t.__name__ + ' has different version than this ReportSet')
+        if self.report_anomalies_only + self.report_sans_anomalies != self.report:
+            raise ValueError('whole report should be union of anomalous and nominal parts')
+        if self.missing_times + self.time_intervals != self.time_intervals:
+            raise ValueError('missing times should be subset of all times in ReportSet')
+        if self.time_intervals != self.report.time_intervals:
+            raise ValueError('time intervals in full Report and ReportSet should match')
+
+    def _confirm_unionability(self, other):
+        if type(self) != type(other):
+            raise ValueError('instances of AbstractReportSet must be of same type')
+        if self.channel_name != other.channel_name:
+            raise ValueError('instances of AbstractReportSet must have same channel_name')
+        if self.bitrate != other.bitrate:
+            raise ValueError('instances of AbstractReportSet must have same bitrate')
+        if self._version != other._version:
+            raise ValueError('instances of AbstractReportSet must have same version')
+        if self.time_intervals.intersection(other.time_intervals) == TimeIntervalSet([]):
+            raise ValueError('instances of AbstractReportSet cannot cover overlapping time intervals')
+
+    def __union__(self, other):
+        ans = self.clone()
+        ans.time_intervals          += other.time_intervals
+        ans.missing_times           += other.missing_times
+        ans.report                  += other.report
+        ans.report_anomalies_only   += other.report_anomalies_only
+        ans.report_sans_anomalies   += other.report_sans_anomalies
+
+    def __clone__(self):
+        return type(self)(
+            bitrate                 = self.bitrate,
+            version                 = self._version,
+            channel_name            = self.channel_name,
+            time_intervals          = self.time_intervals,
+            report                  = self.report,
+            report_anomalies_only   = self.report_anomalies_only,
+            report_sans_anomalies   = self.report_sans_anomalies,
+            missing_times           = self.missing_times
+        )
 
     @classmethod
-    def load_hdf5(cls, filename):
-        """Load an instance saved in an hdf5 file."""
-        # TODO:
-        raise NotImplementedError()
+    def __from_dict__(cls, d):
+        if cls.__name__ != d['class']:
+            raise ValueError('Cannot instantiate ' + cls.__name__ + ' using dict corresponding to ' + d['class'])
+        return cls(
+            bitrate                 = d['bitrate'],
+            version                 = d['version'],
+            channel_name            = d['channel_name'],
+            time_intervals          = TimeIntervalSet.__from_dict__(d['time_intervals']),
+            report                  = Report.__from_dict__(d['report']),
+            report_anomalies_only   = Report.__from_dict__(d['report_anomalies_only']),
+            report_sans_anomalies   = Report.__from_dict__(d['report_sans_anomalies']),
+            missing_times           = TimeIntervalSet.__from_dict__(d['missing_times'])
+        )
+
+    def __to_dict__(self):
+        return {
+            'bitrate':                  self.bitrate,
+            'version':                  self._version,
+            'channel_name':             self.channel_name,
+            'time_intervals':           self.time_intervals.__to_dict__(),
+            'report':                   self.report.__to_dict__(),
+            'report_anomalies_only':    self.report_anomalies_only.__to_dict__(),
+            'report_sans_anomalies':    self.report_sans_anomalies.__to_dict__(),
+            'missing_times':            self.missing_times.__to_dict__(),
+            'class':                    self.__class__.__name__
+        }
+
+    def __eq__(self, other):
+        try:
+            self._confirm_self_consistency()
+            other._confirm_self_consistency()
+        except ValueError():
+            return False
+        if type(self) != type(other):
+            return False
+        if self.bitrate != other.bitrate:
+            return False
+        if self._version != other._version:
+            return False
+        if self.channel_name != other.channel_name:
+            return False
+        if self.time_intervals != other.time_intervals:
+            return False
+        if self.missing_times != other.missing_times:
+            return False
+        if self.report != other.report:
+            return False
+        if self.report_anomalies_only != other.report_anomalies_only:
+            return False
+        if self.report_sans_anomalies != other.report_sans_anomalies:
+            return False
+        return True
+
+# TODO: Add ReportSet subclasses.

@@ -37,10 +37,11 @@ dtone_hist_close_min = -1
 dtone_hist_close_max = 1
 dtone_nbins = 100
 
-"""
-remove first n lines of a string
-"""
+# DONE!
 def remove_lines(string, num_lines):
+    """
+    remove first n lines of a string
+    """
     i = 0
     n = 0
     l = len(string)
@@ -55,24 +56,27 @@ def remove_lines(string, num_lines):
         n += 1
     return string[i+1:]
 
-"""
-Delete first 6 lines; all spaces; and the word 'Data:' which precedes the
-numerical data.
-
-(This replaces sed and tr in the original implementation with native python.)
-"""
+# DONE!
 def remove_header_and_text(string):
+    """
+    Delete first 6 lines; all spaces; and the word 'Data:' which precedes the
+    numerical data.
+
+    (This replaces sed and tr in the original implementation with native python.)
+    """
     return remove_lines(string, 6).translate(None, 'Dat: ')
 
-"""
-Load channel from file path to array.
-
-If a channel doesn't exist within the
-frame file located at the specified path, this function will return None.
-Otherwise, it returns an ndarray with one row for each second of data in the
-frame file.
-"""
+# DONE!
 def ndarray_from_file(channel, path, bitrate=kbps16):
+    """
+    Load channel from file path to array.
+
+    If a channel doesn't exist within the
+    frame file located at the specified path, this function will return None.
+    Otherwise, it returns an ndarray with one row for each second of data in the
+    frame file.
+    """
+
     # make sure path exists
     if not os.path.exists(path):
         raise ValueError('Path does not exist: ' + path)
@@ -94,16 +98,17 @@ def ndarray_from_file(channel, path, bitrate=kbps16):
     # bitrate of the channel.
     return np.fromstring(formatted_data_string, sep=',').reshape((sec_per_frame, bitrate))
 
-"""
-Take a histogram of the given data with the specified bin number and range of
-values. Then, add that to the existing histogram array (which is assumed to have
-the correct dimensions).
-
-Returns: aggregate_histogram, bins
-
-WARNING: will modify the value of aggregate_histogram.
-"""
 def histogram_array_accumulate(data, aggregate_histogram, min, max, nbins=256):
+    """
+    Take a histogram of the given data with the specified bin number and range of
+    values. Then, add that to the existing histogram array (which is assumed to have
+    the correct dimensions).
+
+    Returns: aggregate_histogram, bins
+
+    WARNING: will modify the value of aggregate_histogram.
+    """
+
     # if the aggregate_array is None, just initialize a new array with the proper shape
     if aggregate_histogram == None:
         aggregate_histogram = np.zeros((nbins, data.shape[1]), dtype=np.int64)
@@ -121,11 +126,11 @@ def histogram_array_accumulate(data, aggregate_histogram, min, max, nbins=256):
 
     return aggregate_histogram, bins
 
-"""
-load the specified channel from each frame file in the list of paths provided
-and aggregate statistics on it FOR DTONE
-"""
 def run_avg_dtone(channel, frame_list_file, outfile_prefix, mean_val_file=None):
+    """
+    load the specified channel from each frame file in the list of paths provided
+    and aggregate statistics on it FOR DTONE
+    """
 
     # since this is for dtone, we do need a mean value file; mean value file is
     # assumed to only show mean value over one second.
@@ -204,11 +209,12 @@ def run_avg_dtone(channel, frame_list_file, outfile_prefix, mean_val_file=None):
     bins_c.tofile(outfile_prefix + '.hist_close.bins', sep='\n')
     with open(outfile_prefix + '.num', 'w') as f: f.write(str(num))
 
-"""
-load the specified channel from each frame file in the list of paths provided
-and aggregate statistics on it FOR IRIGB
-"""
 def run_avg_irigb(channel, frame_list_file, outfile_prefix, mean_val_file=None):
+    """
+    load the specified channel from each frame file in the list of paths provided
+    and aggregate statistics on it FOR IRIGB
+    """
+
     # get list of paths to the frame files
     with open(frame_list_file, 'r') as f:
         frame_file_paths = f.read().splitlines()
@@ -282,15 +288,16 @@ run = {
     'l_dtone': __run_l_dtone
 }
 
-"""
-Take all text data outfiles with specified prefix (and that are finished, as
-indicated by a donefile) and aggregate the statistical information they contain.
-
-Usage: takes two arguments, the first of which is a prefix for the outfile
-containing aggregate statistics, and the second of which is an array of
-file prefixes for batches of statistics files.
-"""
 def aggregate_files_irigb(aggregate_prefix, infile_prefixes):
+    """
+    Take all text data outfiles with specified prefix (and that are finished, as
+    indicated by a donefile) and aggregate the statistical information they contain.
+
+    Usage: takes two arguments, the first of which is a prefix for the outfile
+    containing aggregate statistics, and the second of which is an array of
+    file prefixes for batches of statistics files.
+    """
+
     print now() + ' Initializing, loading first batch of statistics from ' + infile_prefixes[0]
     # initialize
     agg_sum     = np.loadtxt(infile_prefixes[0] + '.sum')
@@ -334,15 +341,15 @@ def aggregate_files_irigb(aggregate_prefix, infile_prefixes):
     agg_var.tofile(aggregate_prefix + '.var.txt', sep="\n")
     print now() + '\nDONE.'
 
-"""
-Take all text data outfiles with specified prefix (and that are finished, as
-indicated by a donefile) and aggregate the statistical information they contain.
-
-Usage: takes two arguments, the first of which is a prefix for the outfile
-containing aggregate statistics, and the second of which is an array of
-file prefixes for batches of statistics files.
-"""
 def aggregate_files_dtone(aggregate_prefix, infile_prefixes):
+    """
+    Take all text data outfiles with specified prefix (and that are finished, as
+    indicated by a donefile) and aggregate the statistical information they contain.
+
+    Usage: takes two arguments, the first of which is a prefix for the outfile
+    containing aggregate statistics, and the second of which is an array of
+    file prefixes for batches of statistics files.
+    """
     print now() + ' Initializing, loading first batch of statistics from ' + infile_prefixes[0]
     # initialize
     agg_sum     = np.loadtxt(infile_prefixes[0] + '.sum')

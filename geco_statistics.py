@@ -30,7 +30,18 @@ class Timeseries(np.ndarray):
     """
 
     @classmethod
-    def from_frame_file(cls, channel, path, bitrate):
+    def from_time_and_channel_name(cls, channel_name, time_interval):
+        """
+        Load a timeseries using this channel_name and time_interval.
+
+        The time_interval argument must, at the moment, correspond to a single
+        gravitational wave frame file. Future implementations might change this.
+        """
+        # TODO: Implement
+        raise NotImplementedError()
+
+    @classmethod
+    def from_frame_file(cls, channel_name, path, bitrate):
         """
         Load channel from file path to array.
 
@@ -45,7 +56,7 @@ class Timeseries(np.ndarray):
             raise ValueError('Path does not exist: ' + path)
 
         # set up the processes for acquiring and processing the data
-        dump = subprocess.Popen(["framecpp_dump_channel","--channel",channel,path], stdout=subprocess.PIPE)
+        dump = subprocess.Popen(["framecpp_dump_channel","--channel",channel_name,path], stdout=subprocess.PIPE)
         data_string = dump.communicate()[0]
         print now() + ' Timeseries retrieved, beginning processing.'
 
@@ -107,6 +118,39 @@ class ReportInterface(object):
         "Create a new object that is an exact copy of this instance."
         self._confirm_self_consistency()
         return self.__clone__()
+
+    def from_timeseries(self, timeseries):
+        """
+        Create a compatible object using timeseries data as input. This is
+        an instance method, meant to create a new object compatible with
+        the current instance; this approach allows for a trivially
+        simple method interface, requiring only the timeseries array itself
+        as input.
+
+        The timeseries argument can be composed of multiple rows, representing
+        multiple seconds, worth of data. It can also simply consist of an
+        integer number of seconds worth of data. Consequently, the length of
+        the (flattened) input timeseries must be an integer multiple of the
+        bitrate.
+        """
+        timeseries = np.array(timeseries)
+        l = len(timeseries.flatten())
+        if l % self.bitrate != 0:
+            raise ValueError('Flattened timeseries length must be integer mult of bitrate.')
+        if l == 0:
+            raise ValueError('Cannot pass an empty timeseries.')
+        ans = self.__from_single_second_timeseries__(timeseries)
+        for i in np.arange(1, l/bitrate):
+            ans += self.__from_single_second_timeseries__(timeseries)
+        return ans
+
+    @abc.abstractmethod
+    def __from_single_second_timeseries__(self, timeseries):
+        """
+        Return an instance of this class initiated using only a single second
+        of timeseries data as input. The timeseries used must therefore have
+        length equal to the bitrate. THIS MAY BE ASSUMED BY THE METHOD.
+        """
 
     @abc.abstractmethod
     def __to_dict__(self):
@@ -524,45 +568,12 @@ class TimeIntervalSet(ReportInterface):
         return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
 # TODO: Make Plottable
-class ReportData(ReportInterface):
+class AbstractReportData(ReportInterface):
     "Abstract class for aggregated data. All instances must implement interface."
     __metaclass__  = abc.ABCMeta
 
-    def from_timeseries(self, timeseries):
-        """
-        Create a ReportData object using timeseries data as input. This is
-        an instance method, meant to create a new object compatible with
-        the current instance; this approach allows for a trivially
-        simple method interface, requiring only the timeseries array itself
-        as input.
-
-        The timeseries argument can be composed of multiple rows, representing
-        multiple seconds, worth of data. It can also simply consist of an
-        integer number of seconds worth of data. Consequently, the length of
-        the (flattened) input timeseries must be an integer multiple of the
-        bitrate.
-        """
-        timeseries = np.array(timeseries)
-        l = len(timeseries.flatten())
-        if l % self.bitrate != 0:
-            raise ValueError('Flattened timeseries length must be integer mult of bitrate.')
-        if l == 0:
-            raise ValueError('Cannot pass an empty timeseries.')
-        ans = self.__from_single_second_timeseries__(timeseries)
-        for i in np.arange(1, l/bitrate):
-            ans += self.__from_single_second_timeseries__(timeseries)
-        return ans
-
-    @abc.abstractmethod
-    def __from_single_second_timeseries__(self, timeseries):
-        """
-        Return an instance of this class initiated using only a single second
-        of timeseries data as input. The timeseries used must therefore have
-        length equal to the bitrate. THIS MAY BE ASSUMED BY THE METHOD.
-        """
-
 # TODO: Make Plottable
-class Histogram(ReportData):
+class Histogram(AbstractReportData):
     """
     A class for storing a histogram of (quasi) periodic timeseries. In
     the current version, each period is assumed to last for one second.
@@ -674,7 +685,7 @@ class Histogram(ReportData):
         return np.array_equal(self.hist, other.hist)
 
 # TODO: Make Plottable
-class Statistics(ReportData):
+class Statistics(AbstractReportData):
     """
     A class for storing diagnostic statistics for the aLIGO timing system.
     Includes methods for iteratively generating, amalgamating, and
@@ -798,13 +809,14 @@ class Statistics(ReportData):
         )
 
 # TODO: Make Plottable
-class Report(ReportInterface):
+# TODO: Add Report subclasses.
+class AbstractReport(ReportInterface):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
     and DuoToneReport.
 
-    The Report class contains information on the time intervals included
+    The AbstractReport class contains information on the time intervals included
     as well as basic statistics (mean, max, min, standard deviation)
     on the time intervals included, and finally, multiple histograms
     covering multiple "zoom" levels, for a tailored view of the data.
@@ -821,6 +833,8 @@ class Report(ReportInterface):
                     an empty histogram and an empty statistics instance with
                     the same bitrate.
     """
+    __metaclass__  = abc.ABCMeta
+
     def __init__(self,
             bitrate         = DEFAULT_BITRATE,
             version         = VERSION,
@@ -830,23 +844,60 @@ class Report(ReportInterface):
         if version != self._version:
             raise VersionError()
 
-        if data == None:
-            data = {
-                'histogram': Histogram(bitrate=bitrate),
-                'statistics': Statistics(bitrate=bitrate)
-            }
-        self.bitrate        = bitrate
+        self.bitrate = bitrate
         if time_intervals == None:
             self.time_intervals = TimeIntervalSet()
         else:
             self.time_intervals = time_intervals.clone()
 
-        self._data          = data      # data grouped here
+        if data == None:
+            data = self.__report_data_prototype__(bitrate)
+        self._data = data               # data grouped here
         for key in data:                # instance attr pointers for convenience
             if hasattr(self, key):
-                raise ValueError('ReportData dictionary should not have attributes conflicting with Report attributes.')
+                raise ValueError('AbstractReportData dictionary should not have attributes conflicting with AbstractReport attributes.')
             setattr(self, key, data[key])
         self._confirm_self_consistency()
+
+    @classmethod
+    @abc.abstractmethod
+    def __report_data_prototype__(cls, bitrate=DEFAULT_BITRATE):
+        """
+        MUST BE A CLASSMETHOD.
+
+        Returns an empty ReportData._data dictionary representative of this
+        ReportSet subclass. The only information necessary should be the
+        bitrate; all other configuration information for the ReportData
+        instances should be specified as part of this function, and should be
+        considered to be characteristic of this subclass definition.
+
+        A good operating definition of this prototypical empty class is that
+        it defines unionability.
+
+        EXAMPLE:
+        --------
+
+        @classmethod
+        def __report_data_prototype__(cls, bitrate=DEFAULT_BITRATE)
+            data = {
+                'histogram': Histogram(bitrate=bitrate),
+                'statistics': Statistics(bitrate=bitrate)
+            }
+        """
+
+    @staticmethod
+    @abc.abstractmethod
+    def anomaly_test(timeseries):
+        """
+        MUST BE A STATICMETHOD.
+
+        Define a method for testing whether a timeseries is anomalous. If so, the
+        report generated from this timeseries will be unioned into report_anomalies_only.
+        If not, the report generated from this timeseries will be unioned
+        into report_sans_anomalies. In any case, the report will be unioned into
+        report, which contains report data on the entire timeseries contained in
+        the ReportSet.
+        """
 
     def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
         """
@@ -881,19 +932,20 @@ class Report(ReportInterface):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         if set(self._data) != set(other._data):
-            raise ValueError('ReportData sets do not have matching key sets.')
+            raise ValueError('AbstractReportData sets do not have matching key sets.')
         if self.time_intervals.intersection(other.time_intervals) != TimeIntervalSet():
             raise ValueError('Reports have overlapping time intervals.')
         return True
 
+    # TODO confirm self data unionability with new class instance
     def _confirm_self_consistency(self):
         """
         Confirm that this Report is self-consistent. It should not generally
         be necessary to modify this, except perhaps to extend it in subclasses.
         """
         for key in self._data:
-            if not isinstance(self._data[key], ReportData):
-                raise ValueError('key ' + str(key) + ' must be instance of ReportData')
+            if not isinstance(self._data[key], AbstractReportData):
+                raise ValueError('key ' + str(key) + ' must be instance of AbstractReportData')
             self._data[key]._confirm_self_consistency()
             if self.bitrate != self._data[key].bitrate:
                 raise ValueError('Report constituents have different bitrates')
@@ -917,7 +969,7 @@ class Report(ReportInterface):
             # interactive prototyping.
             report_data_class = globals()[ data_dict[key]['class'] ]
             if not issubclass(report_data_class, ReportData):
-                raise ValueError('Cannot reconstruct Report data; class property not a valid ReportData subclass')
+                raise ValueError('Cannot reconstruct Report data; class property not a valid AbstractReportData subclass')
             data[key] = report_data_class.__from_dict__(data_dict[key])
         return cls(
             bitrate         = d['bitrate'],
@@ -949,7 +1001,7 @@ class Report(ReportInterface):
                 return False
         return True
 
-class AbstractReportSet(ReportInterfaceWithDictToHDF5):
+class ReportSet(ReportInterfaceWithDictToHDF5):
     """
     Abstract class for collections of Reports, allowing for more advanced procedures
     that allow the user to distinguish between anomalous and typical time ranges in
@@ -961,11 +1013,10 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
     should be part of the subclass initializer) and in anomaly identification
     method.
     """
-    __metaclass__  = abc.ABCMeta
-
 
     # TODO Add description
     def __init__(self,
+            report_class_name,
             bitrate                 = DEFAULT_BITRATE,
             version                 = VERSION,
             channel_name            = "blank_report",
@@ -974,9 +1025,15 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
             report_anomalies_only   = None,
             report_sans_anomalies   = None,
             missing_times           = None):
-        "Initialize a new ReportSet. This should be customized in subclasses."
         if version != self._version:
             raise VersionError()
+
+        if type(report_class_name) is str:
+            self.report_class_name = report_class_name
+            if not self.get_report_class() is type:
+                raise ValueError('report_class must be equal to the name of a ReportData class')
+        else:
+            raise ValueError('report_class must be a string')
 
         if time_intervals == None:
             self.time_intervals         = TimeIntervalSet()
@@ -991,9 +1048,9 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
         # All or none of the three reports must be provided as arguments,
         # otherwise it would be possible to initialize an inconsistent ReportSet.
         if None == report == report_anomalies_only == report_sans_anomalies:
-            self.report                 = Report(bitrate=bitrate)
-            self.report_anomalies_only  = Report(bitrate=bitrate)
-            self.report_sans_anomalies  = Report(bitrate=bitrate)
+            self.report                 = self.get_report_class()(bitrate=bitrate)
+            self.report_anomalies_only  = self.get_report_class()(bitrate=bitrate)
+            self.report_sans_anomalies  = self.get_report_class()(bitrate=bitrate)
         else:
             self.report                 = report.clone()
             self.report_anomalies_only  = report_anomalies_only.clone()
@@ -1004,39 +1061,72 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
 
         self._confirm_self_consistency()
 
-    @classmethod
-    def from_time_and_channel(cls, channel, path, bitrate):
+    def get_report_class(self):
         """
-        Each subclass of AbstractReportSet should have its own well-defined
+        Get the specific class of report used in this report set.
+
+        If the function is called from ReportSet, the user must provide the
+        self argument, which is then either interpreted as an instance of
+        ReportSet, or as the class name string itself. In the latter case,
+        this function simply returns the Report class corresponding to the class
+        name passed as an argument.
+        """
+        if not type(self) is str:
+            self = self.report_class_name
+        return globals()[self]
+
+    @staticmethod
+    def from_time_and_channel_name(
+            report_class_name, channel_name, time_intervals, bitrate=DEFAULT_BITRATE):
+        """
+        Each subclass of ReportSet should have its own well-defined
         constructor that rejects initialization data that would lead to an
         instance un-unionable with a new blank instance of that subclass.
 
         This can be confirmed by checking at the end of initialization that the
         new instance is unionable with a new blank instance.
-        """
-        # TODO: Implement
-        raise NotImplementedError()
 
-    @staticmethod
-    @abc.abstractmethod
-    def anomaly_test(timeseries):
+        The time_intervals argument must, at the moment, correspond to a single
+        gravitational wave frame file. Future implementations might change this.
         """
-        MUST BE A STATICMETHOD.
+        report_class = globals()[report_class_name]
+        try:
+            timeseries = Timeseries.from_time_and_channel_name(channel_name, time_intervals)
+            missing_times = TimeIntervalSet()
+            report = report_class.from_timeseries(self, timeseries) # TODO this is hacky, fix it
 
-        Define a method for testing whether a timeseries is anomalous. If so, the
-        report generated from this timeseries will be unioned into report_anomalies_only.
-        If not, the report generated from this timeseries will be unioned
-        into report_sans_anomalies. In any case, the report will be unioned into
-        report, which contains report data on the entire timeseries contained in
-        the ReportSet.
-        """
+            if report_class.anomaly_test(timeseries):
+                report_anomalies_only = report
+                report_sans_anomalies = report_class(
+                    bitrate=bitrate, time_intervals=time_intervals)
+            else:
+                report_sans_anomalies = report
+                report_anomalies_only = report_class(
+                    bitrate=bitrate, time_intervals=time_intervals)
+        except MissingChannelDataException:
+            missing_times = time_intervals
+            report = report_class(bitrate=bitrate, time_intervals=time_intervals)
+            report_anomalies_only = report
+            report_sans_anomalies = report
+
+        return cls(
+            report_class_name       = report_class_name,
+            bitrate                 = bitrate,
+            channel_name            = channel_name,
+            time_intervals          = time_intervals,
+            report                  = report,
+            report_sans_anomalies   = report_sans_anomalies,
+            report_anomalies_only   = report_anomalies_only,
+            missing_times           = missing_times
+        )
 
     def _confirm_self_consistency(self):
         # TODO: make sure the r.__name__ business below works
         for r in self.report, self.report_anomalies_only, self.report_sans_anomalies:
-            if not isinstance(r, Report):
-                raise ValueError('key ' + r.__name__ + ' must be instance of Report')
+            if not isinstance(r, self.get_report_class()):
+                raise ValueError('key ' + r.__name__ + ' must be instance of ' + self.report_class_name)
             r._confirm_self_consistency()
+            # r._confirm_unionability(self.get_report_class()(self.bitrate))
             if self.bitrate != r.bitrate:
                 raise ValueError('key ' + r.__name__ + ' has different bitrate than this ReportSet')
             if self._version != r._version:
@@ -1056,15 +1146,17 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
 
     def _confirm_unionability(self, other):
         if type(self) != type(other):
-            raise ValueError('instances of AbstractReportSet must be of same type')
+            raise ValueError('instances of ReportSet must be of same type')
+        if self.get_report_class() != other.get_report_class():
+            raise ValueError('instances of ReportSet must have same Report class')
         if self.channel_name != other.channel_name:
-            raise ValueError('instances of AbstractReportSet must have same channel_name')
+            raise ValueError('instances of ReportSet must have same channel_name')
         if self.bitrate != other.bitrate:
-            raise ValueError('instances of AbstractReportSet must have same bitrate')
+            raise ValueError('instances of ReportSet must have same bitrate')
         if self._version != other._version:
-            raise ValueError('instances of AbstractReportSet must have same version')
+            raise ValueError('instances of ReportSet must have same version')
         if self.time_intervals.intersection(other.time_intervals) == TimeIntervalSet([]):
-            raise ValueError('instances of AbstractReportSet cannot cover overlapping time intervals')
+            raise ValueError('instances of ReportSet cannot cover overlapping time intervals')
 
     def __union__(self, other):
         ans = self.clone()
@@ -1076,6 +1168,7 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
 
     def __clone__(self):
         return type(self)(
+            report_class_name       = self.report_class_name,
             bitrate                 = self.bitrate,
             version                 = self._version,
             channel_name            = self.channel_name,
@@ -1088,21 +1181,21 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
 
     @classmethod
     def __from_dict__(cls, d):
-        if cls.__name__ != d['class']:
-            raise ValueError('Cannot instantiate ' + cls.__name__ + ' using dict corresponding to ' + d['class'])
         return cls(
+            report_class_name       = d['report_class_name'],
             bitrate                 = d['bitrate'],
             version                 = d['version'],
             channel_name            = d['channel_name'],
             time_intervals          = TimeIntervalSet.__from_dict__(d['time_intervals']),
-            report                  = Report.__from_dict__(d['report']),
-            report_anomalies_only   = Report.__from_dict__(d['report_anomalies_only']),
-            report_sans_anomalies   = Report.__from_dict__(d['report_sans_anomalies']),
+            report                  = cls.get_report_class(d['report_class_name']).__from_dict__(d['report']),
+            report_anomalies_only   = cls.get_report_class(d['report_class_name']).__from_dict__(d['report_anomalies_only']),
+            report_sans_anomalies   = cls.get_report_class(d['report_class_name']).__from_dict__(d['report_sans_anomalies']),
             missing_times           = TimeIntervalSet.__from_dict__(d['missing_times'])
         )
 
     def __to_dict__(self):
         return {
+            'report_class_name':        self.report_class_name,
             'bitrate':                  self.bitrate,
             'version':                  self._version,
             'channel_name':             self.channel_name,
@@ -1110,8 +1203,7 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
             'report':                   self.report.__to_dict__(),
             'report_anomalies_only':    self.report_anomalies_only.__to_dict__(),
             'report_sans_anomalies':    self.report_sans_anomalies.__to_dict__(),
-            'missing_times':            self.missing_times.__to_dict__(),
-            'class':                    self.__class__.__name__
+            'missing_times':            self.missing_times.__to_dict__()
         }
 
     def __eq__(self, other):
@@ -1121,6 +1213,8 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
         except ValueError():
             return False
         if type(self) != type(other):
+            return False
+        if self.report_class_name != other.report_class_name:
             return False
         if self.bitrate != other.bitrate:
             return False
@@ -1140,4 +1234,3 @@ class AbstractReportSet(ReportInterfaceWithDictToHDF5):
             return False
         return True
 
-# TODO: Add ReportSet subclasses.

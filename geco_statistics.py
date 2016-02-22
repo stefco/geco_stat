@@ -1,4 +1,5 @@
 import sys
+import types
 import bisect
 import os
 import subprocess
@@ -7,7 +8,7 @@ import h5py
 import abc
 import numpy as np
 
-VERSION = '0.0.8'
+VERSION = '0.1.0'
 DEFAULT_BITRATE = 16384
 
 class VersionError(Exception):
@@ -30,18 +31,18 @@ class Timeseries(np.ndarray):
     """
 
     @classmethod
-    def from_time_and_channel_name(cls, channel_name, time_interval):
+    def from_time_and_channel_name(cls, channel_name, time_interval, bitrate=DEFAULT_BITRATE):
         """
         Load a timeseries using this channel_name and time_interval.
 
         The time_interval argument must, at the moment, correspond to a single
         gravitational wave frame file. Future implementations might change this.
         """
-        # TODO: Implement
-        raise NotImplementedError()
+        frame_path = cls.locate_frame_file(channel_name, time_interval)
+        return cls.from_frame_file(channel_name, frame_path, time_interval, bitrate)
 
     @classmethod
-    def from_frame_file(cls, channel_name, path, bitrate):
+    def from_frame_file(cls, channel_name, path, time_intervals, bitrate=DEFAULT_BITRATE):
         """
         Load channel from file path to array.
 
@@ -61,7 +62,7 @@ class Timeseries(np.ndarray):
         print now() + ' Timeseries retrieved, beginning processing.'
 
         # remove headers from the data
-        formatted_data_string = __remove_header_and_text__(data_string)
+        formatted_data_string = cls.__remove_header_and_text__(data_string)
 
         # if the string is empty, the channel didn't exist. return None.
         if formatted_data_string == '':
@@ -70,7 +71,43 @@ class Timeseries(np.ndarray):
         # instantiate numpy array and return it; will have number of rows equal to
         # the number of seconds in a frame file and number of columns equal to the
         # bitrate of the channel.
-        return np.fromstring(formatted_data_string, sep=',').reshape((sec_per_frame, bitrate)).view(cls)
+        ans = np.fromstring(formatted_data_string, sep=',').reshape((64, bitrate)).view(cls)
+        ans.time_intervals = time_intervals
+        ans.bitrate = bitrate
+        return ans
+
+    def get_num_seconds(self):
+        """
+        Get the number of seconds worth of data in this frame file.
+        """
+        assert self.shape[0] == self.time_intervals.combined_length(), 'mismatch between time_interval length and number of seconds of data'
+        return self.shape[0]
+
+    @staticmethod
+    def locate_frame_file(channel_name, time_interval):
+        """
+        Find the gravitational wave frame file corresponding to a particular
+        time interval for a particular channel name.
+        """
+        assert time_interval.round_to_frame_times() == time_interval, 'Must pick a time interval that is already rounded to frame times.'
+        assert time_interval.combined_length() == 64, 'TimeIntervalSet must correspond to only a single frame file.'
+        assert len(time_interval) == 2, 'TimeIntervalSet must contain only one continuous interval.'
+        assert type(channel_name) == types.StringType, 'locate_frame_file() channel_name must be a string.'
+        assert isinstance(time_interval, TimeIntervalSet), 'locate_frame_file() time_interval must be a TimeIntervalSet'
+
+        detector_prefix = channel_name[0]
+        dump = subprocess.Popen([
+                'gw_data_find',
+                '-o', detector_prefix,
+                '-t', detector_prefix + '1_R',
+                '-s', time_interval._data[0],
+                '-e', time_interval._data[1],
+                '-u', 'file'], stdout=subprocess.PIPE)
+        frame_path = dump.communicate()[0]
+        assert frame_path[0:15] == 'file://localhost', 'expected file://localhost prefix output from gw_data_find, got %s' % frame_path[0:15]
+        frame_path = frame_path[16:]
+        assert os.path.exists(frame_path), 'gw_data_find returned faulty path %s' % frame_path
+        return frame_path
 
     @staticmethod
     def __remove_lines__(string, num_lines):
@@ -109,16 +146,89 @@ class ReportInterface(object):
 
     def union(self, other):
         "Aggregate these two instances. Must be of compatible type."
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+        self._assert_self_consistent()
+        other._assert_self_consistent()
         self._confirm_unionability(other)
         return self.__union__(other)
 
     def clone(self):
         "Create a new object that is an exact copy of this instance."
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
         return self.__clone__()
 
+    def save_hdf5(self, filename):
+        """Save this instance to an hdf5 file."""
+        self.__save_dict_to_hdf5__(self.__to_dict__())
+
+    @classmethod
+    def load_hdf5(cls, filename):
+        """Load an instance saved in an hdf5 file."""
+        return cls.__from_dict__(cls.__load_dict_from_hdf5__(filename))
+
+    @classmethod
+    def __save_dict_to_hdf5__(cls, dic, filename):
+        """
+        Save a dictionary whose contents are only strings, np.float64, np.int64,
+        np.ndarray, and other dictionaries following this structure
+        to an HDF5 file. These are the sorts of dictionaries that are meant
+        to be produced by the ReportInterface__to_dict__() method.
+        """
+        assert not os.path.exists(filename), 'this is a noclobber operation bud'
+        with h5py.File(filename, 'w') as h5file:
+            cls.__recursively_save_dict_contents_to_group__(h5file, '/', dic)
+
+    @classmethod
+    def __recursively_save_dict_contents_to_group__(cls, h5file, path, dic):
+        """
+        Take an already open HDF5 file and insert the contents of a dictionary
+        at the current path location. Can call itself recursively to fill
+        out HDF5 files with the contents of a dictionary.
+        """
+        assert type(dic) is types.DictionaryType, "must provide a dictionary"
+        assert type(path) is types.StringType, "path must be a string"
+        assert type(h5file) is h5py._hl.files.File, "must be an open h5py file"
+        for key in dic:
+            assert type(key) == types.StringType, 'dict keys must be strings to save to hdf5'
+            # TODO: save some funky numbers like 4.3 that have shit float64
+            # representations to confirm that these are getting converted to
+            # np.float64 early and therefore are not being unpredictably
+            # mutilated by this saving method
+            if type(dic[key]) in (np.int64, np.float64, types.StringType):
+                h5file[path + key] = dic[key]
+                assert h5file[path + key].value == dic[key], 'The data representation in the HDF5 file does not match the original dict.'
+            if type(dic[key]) is np.ndarray:
+                h5file[path + key] = dic[key]
+                assert np.array_equal(h5file[path + key].value, dic[key]), 'The data representation in the HDF5 file does not match the original dict.'
+            elif type(dic[key]) is types.DictionaryType:
+                cls.__recursively_save_dict_contents_to_group__(h5file, path + key + '/', dic[key])
+
+    @classmethod
+    def __load_dict_from_hdf5__(cls, filename):
+        """
+        Load a dictionary whose contents are only strings, floats, ints,
+        numpy arrays, and other dictionaries following this structure
+        from an HDF5 file. These dictionaries can then be used to reconstruct
+        ReportInterface subclass instances using the
+        ReportInterface.__from_dict__() method.
+        """
+        with h5py.File(filename, 'r') as h5file:
+            return cls.__recursively_load_dict_contents_from_group__(h5file, '/')
+
+    @classmethod
+    def __recursively_load_dict_contents_from_group__(cls, h5file, path):
+        """
+        Load contents of an HDF5 group. If further groups are encountered,
+        treat them like dicts and continue to load them recursively.
+        """
+        ans = {}
+        for key, item in h5file[path].items():
+            if type(item) is h5py._hl.dataset.Dataset:
+                ans[key] = item.value
+            elif type(item) is h5py._hl.group.Group:
+                ans[key] = cls.__recursively_load_dict_contents_from_group__(h5file, path + key + '/')
+        return ans
+
+    @abc.abstractmethod
     def from_timeseries(self, timeseries):
         """
         Create a compatible object using timeseries data as input. This is
@@ -131,26 +241,12 @@ class ReportInterface(object):
         multiple seconds, worth of data. It can also simply consist of an
         integer number of seconds worth of data. Consequently, the length of
         the (flattened) input timeseries must be an integer multiple of the
-        bitrate.
+        bitrate. This is tested by the abstract method; subclasses can
+        extend it.
         """
-        timeseries = np.array(timeseries)
         l = len(timeseries.flatten())
-        if l % self.bitrate != 0:
-            raise ValueError('Flattened timeseries length must be integer mult of bitrate.')
-        if l == 0:
-            raise ValueError('Cannot pass an empty timeseries.')
-        ans = self.__from_single_second_timeseries__(timeseries)
-        for i in np.arange(1, l/bitrate):
-            ans += self.__from_single_second_timeseries__(timeseries)
-        return ans
-
-    @abc.abstractmethod
-    def __from_single_second_timeseries__(self, timeseries):
-        """
-        Return an instance of this class initiated using only a single second
-        of timeseries data as input. The timeseries used must therefore have
-        length equal to the bitrate. THIS MAY BE ASSUMED BY THE METHOD.
-        """
+        assert l % self.bitrate == 0, 'Flattened timeseries length must be integer mult of bitrate.'
+        assert l > 0, 'Cannot pass an empty timeseries.'
 
     @abc.abstractmethod
     def __to_dict__(self):
@@ -191,7 +287,7 @@ class ReportInterface(object):
         "Make sure these two instances can be unioned."
 
     @abc.abstractmethod
-    def _confirm_self_consistency(self):
+    def _assert_self_consistent(self):
         "Make sure this instance is self-consistent."
 
     @abc.abstractmethod
@@ -205,24 +301,7 @@ class ReportInterface(object):
         'Addition can be used as a shorthand for union.'
         return type(self).union(self, other)
 
-class ReportInterfaceWithDictToHDF5(ReportInterface):
-    """
-    Class providing methods for saving and loading objects that can be serialized into dicts
-    using HDF5.
-    """
-
-    def save_hdf5(self, filename):
-        """Save this instance to an hdf5 file."""
-        # TODO: Implement
-        raise NotImplementedError()
-
-    @classmethod
-    def load_hdf5(cls, filename):
-        """Load an instance saved in an hdf5 file."""
-        # TODO: Implement
-        raise NotImplementedError()
-
-class Plottable(ReportInterface):
+class PlottableInterface(ReportInterface):
     """
     An interface for generating matplotlib figures that can be used in
     visualizing data.
@@ -245,7 +324,7 @@ class Plottable(ReportInterface):
         content of this object. Should return a string.
         """
 
-# TODO: Make Plottable
+# TODO: Make PlottableInterface
 class TimeIntervalSet(ReportInterface):
     """
     TimeIntervalSet
@@ -298,13 +377,13 @@ class TimeIntervalSet(ReportInterface):
             else:
                 self._data = np.array([float(x) for x in intervalSet])
                 self.remove_empty_sets()
-                self._confirm_self_consistency()
+                self._assert_self_consistent()
         elif intervalSet == start == end == None or start == end:
             self._data = np.array([])
         elif start < end:
             self._data = np.array([float(start), float(end)])
             self.remove_empty_sets()
-            self._confirm_self_consistency()
+            self._assert_self_consistent()
         else:
             raise ValueError('Invalid combination of arguments. See documentation.')
 
@@ -330,15 +409,142 @@ class TimeIntervalSet(ReportInterface):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [start, end], result._data[bounds[1]+1:]))
+                result._data = np.concatenate((result._data[0:bounds[0]], [start, end], result._data[bounds[1]+1:]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [start], result._data[bounds[1]+1:]))
+                result._data = np.concatenate((result._data[0:bounds[0]], [start], result._data[bounds[1]+1:]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate((result._data, result._data[0:bounds[0]], [end], result._data[bounds[1]+1:]))
+                result._data = np.concatenate((result._data[0:bounds[0]], [end], result._data[bounds[1]+1:]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate((result._data, result._data[0:bounds[0]], result._data[bounds[1]+1:]))
+                result._data = np.concatenate((result._data[0:bounds[0]], result._data[bounds[1]+1:]))
             result.remove_empty_sets()
         return result
+
+    @staticmethod
+    def __find_frame_file_gps_start_time__(gps_time):
+        """
+        Get the GPS Time representing the START time of the frame file
+        containing data for the time represented by the argument, which
+        must also be in GPS Time format.
+
+        Frame files always start at times that are integer multiples of
+        64, so this is just a convenience function for rounding down to
+        the nearest multiple of 64.
+        """
+        ans = np.floor(gps_time / 64.) * 64
+        assert ans % 1 == 0, "Out of precision in floats, answer should be integer"
+        return ans
+
+    @staticmethod
+    def __find_frame_file_gps_end_time__(gps_time):
+        """
+        Get the GPS Time representing the END time of the frame file
+        containing data for the time represented by the argument, which
+        must also be in GPS Time format.
+
+        Frame files always start at times that are integer multiples of
+        64, so this is just a convenience function for rounding up to
+        the nearest multiple of 64.
+        """
+        ans = np.ceil(gps_time / 64.) * 64
+        assert ans % 1 == 0, "Out of precision in floats, answer should be integer"
+        return ans
+
+    @staticmethod
+    def tconvert(input_time):
+        """
+        Take either a numerical input (representing gps time) or a string input
+        (representing UTC time) and return the opposite. For example:
+
+            tconvert('Oct 30 00:00:00 GMT 2015')
+
+        returns
+
+            1130198417
+
+        and
+
+            tconvert(1130198417)
+
+        returns
+
+            'Oct 30 00:00:00 GMT 2015'
+
+        """
+        if type(input_time) is str:
+            dump = subprocess.Popen(["lalapps_tconvert",str(input_time)], stdout=subprocess.PIPE)
+            converted_time = dump.communicate()[0]
+            return int(converted_time) # should be an int; if not, that's bad
+        else:
+            dump = subprocess.Popen(["lalapps_tconvert",str(int(input_time))], stdout=subprocess.PIPE)
+            converted_time = dump.communicate()[0]
+            return converted_time
+
+    def round_to_frame_times(self):
+        """
+        Return a TimeIntervalSet that is a superset of of this TimeIntervalSet
+        and which perfectly overlaps with the data contained in a set of frame
+        files. Since frame files start at times that are integer multiples of,
+        this is tantamount to rounding the start times up and the end times
+        down.
+        """
+        cls = type(self)
+        rounded_times = cls()
+        for i in range(0, len(self)/2):
+            rounded_times += cls([
+                cls.__find_frame_file_gps_start_time__(self._data[2*i]),
+                cls.__find_frame_file_gps_end_time__(self._data[2*i+1])
+            ])
+        return rounded_times
+
+    def split_into_frame_file_intervals(self):
+        """
+        Return a list of TimeIntervalSets corresponding to time intervals
+        covered by the frame files covering this time range. For example,
+
+            [6400, 6528)
+
+        would be split into
+
+            [[6400, 6464), [6464, 6528)]
+
+        The input TimeIntervalSet instance must start and end on a valid
+        frame file time (an integer multiple of 64) or else an error will
+        be raised.
+        """
+        assert self.round_to_frame_times() == self, "Can only split a rounded time interval"
+        frame_intervals = []
+        for i in range(0, len(self)/2):
+            assert int(self._data[2*i]) == self._data[2*i], "Out of precision in floats, answer should be integer"
+            assert int(self._data[2*i+1]) == self._data[2*i+1], "Out of precision in floats, answer should be integer"
+            for start_time in range(int(self._data[2*i]), int(self._data[2*i+1]), 64):
+                frame_intervals.append(type(self)([start_time, start_time+64]))
+        return frame_intervals
+
+    @classmethod
+    def from_human_readable_strings(cls, readable_string_list):
+        """
+        Take an iterable consisting of pairs of strings and return a timeseries
+        corresponding to those times. The input iterable should be flat
+        (one-dimensional) and have an even number of entries, or else an error
+        will result. For example, use as input:
+
+            ['Oct 30 00:00:00 GMT 2015', 'Oct 30 00:02:00 GMT 2015']
+
+        which will return a time interval corresponding to the given time
+        strings. The conversion to GPS is carried out by lalapps_tconvert,
+        so formatting must be comprehensible to that program.
+
+        Note that no rounding occurs, so if you are going to use these times
+        to find gravitational wave frame files, you should not use the resulting
+        numerical values but find another way to generate a list of
+        gravitational wave frame file start times (like using
+        self.round_to_frame_times).
+        """
+        times = []
+        for s in readable_string_list:
+            assert type(s) is types.StringType, 'from_human_readable_strings() must use strings as input'
+            times.append(cls.tconvert(s))
+        return cls(times)
 
     def intersection(self, other):
         """
@@ -348,8 +554,8 @@ class TimeIntervalSet(ReportInterface):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+        self._assert_self_consistent()
+        other._assert_self_consistent()
         if len(other) == 0 or len(self) == 0:
             return TimeIntervalSet()
         result = TimeIntervalSet()
@@ -381,8 +587,8 @@ class TimeIntervalSet(ReportInterface):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._confirm_self_consistency()
-        other._confirm_self_consistency()
+        self._assert_self_consistent()
+        other._assert_self_consistent()
         if self.union(other) != other:
             raise ValueError('Can only take complement with respect to a superset.')
         if len(self) == 0:
@@ -414,7 +620,7 @@ class TimeIntervalSet(ReportInterface):
         contain numerical data.
 
         This function returns a list L of length 2, such that:
-        
+
             L[0] = index of leftmost value in S greater than or equal to a
             L[1] = index of rightmost value in S less than or equal to a
 
@@ -448,7 +654,7 @@ class TimeIntervalSet(ReportInterface):
 
         is empty, and can simply be removed.
         """
-        self._confirm_self_consistency() # check
+        self._assert_self_consistent() # check
         i = 0
         while i < len(self._data) - 1:
             if self._data[i] == self._data[i+1]:
@@ -463,7 +669,7 @@ class TimeIntervalSet(ReportInterface):
             raise ValueError('TimeIntervalSets have different versions')
         return True
 
-    def _confirm_self_consistency(self):
+    def _assert_self_consistent(self):
         'Check that this instance has form consistent with the class spec'
         if type(self._data) != np.ndarray:
             raise Exception('TimeIntervalSet corrupted: data not a numpy.ndarray')
@@ -502,7 +708,7 @@ class TimeIntervalSet(ReportInterface):
 
         """
         times = [str(int(x)) for x in self._data]
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
         tstring = ""
         i = 0
         for time in times:
@@ -521,7 +727,7 @@ class TimeIntervalSet(ReportInterface):
         return cls(d['data'], version=d['version'])
 
     def __to_dict__(self):
-        return {'data': self._data, 'version': self._version}
+        return {'data': np.array(self._data), 'version': self._version}
 
     def __eq__(self, other):
         return np.array_equal(self._data, other._data)
@@ -553,7 +759,7 @@ class TimeIntervalSet(ReportInterface):
 
     def __str__(self):
         'Return a string expressing the object in set union notation'
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
         if len(self) == 0:
             return '{}'
         starts = self._data[0::2]
@@ -564,15 +770,19 @@ class TimeIntervalSet(ReportInterface):
         return string
 
     def __repr__(self):
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
         return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
-# TODO: Make Plottable
+    def from_timeseries(self, timeseries):
+        """Just clone the TimeIntervalSet belonging to the Timeseries"""
+        return timeseries.time_intervals.clone()
+
+# TODO: Make PlottableInterface
 class AbstractReportData(ReportInterface):
     "Abstract class for aggregated data. All instances must implement interface."
     __metaclass__  = abc.ABCMeta
 
-# TODO: Make Plottable
+# TODO: Make PlottableInterface
 class Histogram(AbstractReportData):
     """
     A class for storing a histogram of (quasi) periodic timeseries. In
@@ -609,12 +819,15 @@ class Histogram(AbstractReportData):
         if hist == None:
             hist = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
 
-        self.hist_num_bins  = hist_num_bins
-        self.hist_range     = hist_range
+        assert np.int64(hist_num_bins) == hist_num_bins, 'hist_num_bins must be an integer'
+        self.hist_num_bins  = np.int64(hist_num_bins)
+        assert len(hist_range) == 2
+        self.hist_range     = np.array(hist_range)
         self.hist           = np.array(hist, copy=True) # Make sure this is a copy of the data
         self.hist_bins      = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
-        self._t_ticks       = np.linspace(0,1,bitrate,endpoint=False)
-        self.bitrate        = bitrate
+        self.t_ticks        = np.linspace(0,1,bitrate+1)
+        assert np.int64(bitrate) == bitrate, 'bitrate must be an integer'
+        self.bitrate        = np.int64(bitrate)
 
     def __union__(self, other):
         """
@@ -643,10 +856,13 @@ class Histogram(AbstractReportData):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
-        
-    def _confirm_self_consistency(self):
+
+    def _assert_self_consistent(self):
         if self._version != VERSION:
             raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        assert self.hist_bins == np.linspace(self.hist_range[0], self.hist_range[1], self.hist_num_bins+1)
+        assert self.t_ticks == np.linspace(0,1,self.bitrate+1)
+        assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
         return True
 
     @classmethod
@@ -661,17 +877,29 @@ class Histogram(AbstractReportData):
 
     def __to_dict__(self):
         return {
-            'hist': self.hist,
-            'hist_range': self.hist_range,
+            'hist': np.array(self.hist),
+            'hist_range': np.array(self.hist_range),
             'hist_num_bins': self.hist_num_bins,
             'bitrate': self.bitrate,
             'version': self._version,
             'class': 'Histogram'
         }
 
-    def __from_single_second_timeseries__(self, timeseries):
-        # TODO
-        raise NotImplementedError()
+    def from_timeseries(self, timeseries):
+        num_sec = timeseries.get_num_seconds()
+        hist, xedges, yedges = np.histogram2d(
+                timeseries.flatten(),
+                np.tile(self.t_ticks, num_sec),
+                bins = [self.hist_bins, self.t_ticks])
+        assert xedges == self.hist_bins, 'xedges should be the histogram bins'
+        assert yedges == self.t_ticks, 'yedges should be the t_ticks'
+        assert self.bitrate == timeseries.bitrate, 'timeseries and histogram must have same bitrate'
+        self._assert_self_consistent()
+        return type(self)(
+            hist            = hist,
+            hist_range      = self.hist_range,
+            hist_num_bins   = self.hist_num_bins,
+            bitrate         = self.bitrate)
 
     def __eq__(self, other):
         if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
@@ -684,7 +912,7 @@ class Histogram(AbstractReportData):
             return False
         return np.array_equal(self.hist, other.hist)
 
-# TODO: Make Plottable
+# TODO: Make PlottableInterface
 class Statistics(AbstractReportData):
     """
     A class for storing diagnostic statistics for the aLIGO timing system.
@@ -718,12 +946,16 @@ class Statistics(AbstractReportData):
         if max          == None: max        = np.ones(bitrate) * np.finfo(np.float64).min # lowest possible max, cannot survive
         if min          == None: min        = np.ones(bitrate) * np.finfo(np.float64).max # same for min
 
-        self.sum        = np.array(sum, copy=True)
-        self.sum_sq     = np.array(sum_sq, copy=True)
-        self.max        = np.array(max, copy=True)
-        self.min        = np.array(min, copy=True)
-        self.num        = num
-        self.bitrate    = bitrate
+        self.sum        = np.array(sum, copy=True).reshape((bitrate,))
+        self.sum_sq     = np.array(sum_sq, copy=True).reshape((bitrate,))
+        self.max        = np.array(max, copy=True).reshape((bitrate,))
+        self.min        = np.array(min, copy=True).reshape((bitrate,))
+        assert np.int64(num) == num, 'must provide an integer number of previous seconds'
+        self.num        = np.int64(num)
+        assert np.int64(bitrate) == bitrate
+        self.bitrate    = np.int64(bitrate)
+
+        self._assert_self_consistent()
 
     def __union__(self, other):
         """
@@ -739,7 +971,7 @@ class Statistics(AbstractReportData):
         return ans
 
     def __clone__(self):
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
         return type(self)(
             sum             = self.sum,
             sum_sq          = self.sum_sq,
@@ -758,7 +990,13 @@ class Statistics(AbstractReportData):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
 
-    def _confirm_self_consistency(self):
+    def _assert_self_consistent(self):
+        assert self.sum.shape == (self.bitrate,), "sum should be vector with length equal to bitrate"
+        assert self.sum_sq.shape == (self.bitrate,), "sum_sq should be vector with length equal to bitrate"
+        assert self.max.shape == (self.bitrate,), "max should be vector with length equal to bitrate"
+        assert self.min.shape == (self.bitrate,), "min should be vector with length equal to bitrate"
+        assert np.int64(self.num) == self.num
+        assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
         if self._version != VERSION:
             raise ValueError('Statistics version ' + self._version + ' does not match lib version')
         if not ((self.bitrate,) == self.sum.shape == self.sum_sq.shape == self.max.shape == self.min.shape):
@@ -778,20 +1016,27 @@ class Statistics(AbstractReportData):
         )
 
     def __to_dict__(self):
+        assert self.num == np.int64(self.num)
         return {
-            'sum':      self.sum,
-            'sum_sq':   self.sum_sq,
-            'max':      self.max,
-            'min':      self.min,
-            'num':      self.num,
-            'bitrate':  self.bitrate,
+            'sum':      np.array(self.sum).flatten(),
+            'sum_sq':   np.array(self.sum_sq).flatten(),
+            'max':      np.array(self.max).flatten(),
+            'min':      np.array(self.min).flatten(),
+            'num':      np.int64(self.num),
+            'bitrate':  np.int64(self.bitrate),
             'version':  self._version,
             'class':    'Statistics'
         }
 
-    def __from_single_second_timeseries__(self, timeseries):
-        # TODO
-        raise NotImplementedError()
+    def from_timeseries(self, timeseries):
+        super(type(self), self).from_timeseries()
+        return type(self)(
+                sum     = timeseries.sum(0),
+                sum_sq  = np.power(timeseries, 2).sum(0),
+                max     = np.max(timeseries, 0),
+                min     = np.min(timeseries, 0),
+                num     = np.shape[0],
+                bitrate = timeseries.bitrate)
 
     def __eq__(self, other):
         if self.bitrate != other.bitrate:
@@ -808,8 +1053,7 @@ class Statistics(AbstractReportData):
             np.array_equal(self.num,    other.num)
         )
 
-# TODO: Make Plottable
-# TODO: Add Report subclasses.
+# TODO: Make PlottableInterface
 class AbstractReport(ReportInterface):
     """
     A class for generating reports on data integrity. Should be extended to
@@ -844,7 +1088,8 @@ class AbstractReport(ReportInterface):
         if version != self._version:
             raise VersionError()
 
-        self.bitrate = bitrate
+        assert np.int64(bitrate) == bitrate, 'bitrate must be an integer'
+        self.bitrate = np.int64(bitrate)
         if time_intervals == None:
             self.time_intervals = TimeIntervalSet()
         else:
@@ -857,7 +1102,7 @@ class AbstractReport(ReportInterface):
             if hasattr(self, key):
                 raise ValueError('AbstractReportData dictionary should not have attributes conflicting with AbstractReport attributes.')
             setattr(self, key, data[key])
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
 
     @classmethod
     @abc.abstractmethod
@@ -887,7 +1132,7 @@ class AbstractReport(ReportInterface):
 
     @staticmethod
     @abc.abstractmethod
-    def anomaly_test(timeseries):
+    def is_anomalous(timeseries):
         """
         MUST BE A STATICMETHOD.
 
@@ -938,7 +1183,7 @@ class AbstractReport(ReportInterface):
         return True
 
     # TODO confirm self data unionability with new class instance
-    def _confirm_self_consistency(self):
+    def _assert_self_consistent(self):
         """
         Confirm that this Report is self-consistent. It should not generally
         be necessary to modify this, except perhaps to extend it in subclasses.
@@ -946,7 +1191,7 @@ class AbstractReport(ReportInterface):
         for key in self._data:
             if not isinstance(self._data[key], AbstractReportData):
                 raise ValueError('key ' + str(key) + ' must be instance of AbstractReportData')
-            self._data[key]._confirm_self_consistency()
+            self._data[key]._assert_self_consistent()
             if self.bitrate != self._data[key].bitrate:
                 raise ValueError('Report constituents have different bitrates')
             if self._version != self._data[key]._version:
@@ -955,13 +1200,14 @@ class AbstractReport(ReportInterface):
             raise ValueError('self.time_intervals must be an instance of TimeIntervalSet.')
         if self._version != self.time_intervals._version:
             raise ValueError('time_intervals has different version than the Report itself')
+        assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
     @classmethod
     def __from_dict__(cls, d):
         data = dict()
         data_dict = d['data']
         for key in data_dict:
-            # for each ReportData dict, confirm it is a subclass and then 
+            # for each ReportData dict, confirm it is a subclass and then
             # initialize from dictionary. note that THIS ONLY WORKS FOR
             # CLASSES DECLARED WITHIN THIS DOCUMENT due to lexical scoping.
             # an alternative implementation could be used in the future if
@@ -1001,17 +1247,29 @@ class AbstractReport(ReportInterface):
                 return False
         return True
 
-class ReportSet(ReportInterfaceWithDictToHDF5):
+class IRIGBReport(AbstractReport):
+    def __init__(self):
+        # TODO: Implement
+        raise NotImplementedError()
+
+    def is_anomalous(timeseries):
+        # For now, always assume non-anomalous
+        return False
+
+class DuoToneReport(AbstractReport):
+    def __init__(self):
+        # TODO: Implement
+        raise NotImplementedError()
+
+    def is_anomalous(timeseries):
+        # For now, always assume non-anomalous
+        return False
+
+class ReportSet(ReportInterface):
     """
-    Abstract class for collections of Reports, allowing for more advanced procedures
+    Class for collections of Reports, allowing for more advanced procedures
     that allow the user to distinguish between anomalous and typical time ranges in
     the input data.
-    
-    Subclasses of ReportSet should have the same attributes and
-    should only differ in constructor interface (nested Report instances should
-    have forms specific to the type of signal being analyzed, and these setup details
-    should be part of the subclass initializer) and in anomaly identification
-    method.
     """
 
     # TODO Add description
@@ -1056,10 +1314,11 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
             self.report_anomalies_only  = report_anomalies_only.clone()
             self.report_sans_anomalies  = report_sans_anomalies.clone()
 
-        self.bitrate                = bitrate
+        assert np.int64(bitrate) == bitrate, 'bitrate must be an integer'
+        self.bitrate                = np.int64(bitrate)
         self.channel_name           = channel_name
 
-        self._confirm_self_consistency()
+        self._assert_self_consistent()
 
     def get_report_class(self):
         """
@@ -1095,7 +1354,7 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
             missing_times = TimeIntervalSet()
             report = report_class.from_timeseries(self, timeseries) # TODO this is hacky, fix it
 
-            if report_class.anomaly_test(timeseries):
+            if report_class.is_anomalous(timeseries):
                 report_anomalies_only = report
                 report_sans_anomalies = report_class(
                     bitrate=bitrate, time_intervals=time_intervals)
@@ -1120,12 +1379,12 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
             missing_times           = missing_times
         )
 
-    def _confirm_self_consistency(self):
+    def _assert_self_consistent(self):
         # TODO: make sure the r.__name__ business below works
         for r in self.report, self.report_anomalies_only, self.report_sans_anomalies:
             if not isinstance(r, self.get_report_class()):
                 raise ValueError('key ' + r.__name__ + ' must be instance of ' + self.report_class_name)
-            r._confirm_self_consistency()
+            r._assert_self_consistent()
             # r._confirm_unionability(self.get_report_class()(self.bitrate))
             if self.bitrate != r.bitrate:
                 raise ValueError('key ' + r.__name__ + ' has different bitrate than this ReportSet')
@@ -1134,7 +1393,7 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
         for t in self.time_intervals, self.missing_times:
             if not isinstance(t, TimeIntervalSet):
                 raise ValueError('key ' + t.__name__ + ' must be instance of TimeIntervalSet')
-            t._confirm_self_consistency()
+            t._assert_self_consistent()
             if self._version != t._version:
                 raise ValueError('key ' + t.__name__ + ' has different version than this ReportSet')
         if self.report_anomalies_only + self.report_sans_anomalies != self.report:
@@ -1143,6 +1402,7 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
             raise ValueError('missing times should be subset of all times in ReportSet')
         if self.time_intervals != self.report.time_intervals:
             raise ValueError('time intervals in full Report and ReportSet should match')
+        assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
     def _confirm_unionability(self, other):
         if type(self) != type(other):
@@ -1196,7 +1456,7 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
     def __to_dict__(self):
         return {
             'report_class_name':        self.report_class_name,
-            'bitrate':                  self.bitrate,
+            'bitrate':                  np.int64(self.bitrate),
             'version':                  self._version,
             'channel_name':             self.channel_name,
             'time_intervals':           self.time_intervals.__to_dict__(),
@@ -1208,8 +1468,8 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
 
     def __eq__(self, other):
         try:
-            self._confirm_self_consistency()
-            other._confirm_self_consistency()
+            self._assert_self_consistent()
+            other._assert_self_consistent()
         except ValueError():
             return False
         if type(self) != type(other):
@@ -1234,3 +1494,69 @@ class ReportSet(ReportInterfaceWithDictToHDF5):
             return False
         return True
 
+def run_unit_tests():
+    print 'Testing class initializations.'
+    Timeseries((16384,))
+    TimeIntervalSet()
+    Histogram()
+    Statistics()
+
+    print 'Testing TimeIntervalSet arithmetic.'
+    assert TimeIntervalSet([66,69]) + TimeIntervalSet([67,72]) == TimeIntervalSet([66,72]), "Union failing"
+    assert TimeIntervalSet([66,69]) * TimeIntervalSet([67,72]) == TimeIntervalSet([67,69]), "Intersection failing"
+    assert TimeIntervalSet([66,69]) + TimeIntervalSet([70,72]) == TimeIntervalSet([66,69,70,72]), "Union failing"
+    assert TimeIntervalSet([66,73]) - TimeIntervalSet([67,72]) == TimeIntervalSet([66,67,72,73]), "Complement failing"
+    assert TimeIntervalSet([66,73]) - TimeIntervalSet([66,73]) == TimeIntervalSet(), "Complement failing"
+    # TODO: Add some more arithmetic assertions.
+
+    print 'Testing TimeIntervalSet frame time rounding.'
+    assert TimeIntervalSet([65,124]).round_to_frame_times() == TimeIntervalSet([64, 128]), "Rounding to frame times is failing"
+    assert TimeIntervalSet([64,128]).round_to_frame_times() == TimeIntervalSet([64, 128]), "Rounding to frame times is failing"
+    assert TimeIntervalSet([63,65,120,133]).round_to_frame_times() == TimeIntervalSet([0,192]), "Rounding to frame times is failing"
+
+    print 'Testing TimeIntervalSet length calculation.'
+    assert TimeIntervalSet([6400,6464]).combined_length() == 64, 'Time interval total length calculations are off'
+    assert TimeIntervalSet([0,4,6400,6466]).combined_length() == 70, 'Time interval total length calculations are off'
+
+    print 'Testing TimeIntervalSet splitting into frame files.'
+    try:
+        TimeIntervalSet([66,68]).split_into_frame_file_intervals()
+        raise AssertionError('Should not be able to split a time interval not having round endpoints')
+    except AssertionError:
+        pass
+    assert (TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
+            == [TimeIntervalSet([64,128]),
+                TimeIntervalSet([128,192]),
+                TimeIntervalSet([256,320])]), 'TimeIntervalSet splitting failed'
+
+    print 'Testing HDF5 file saving capabilities'
+    ex = {
+        'name': 'stefan',
+        'age':  np.int64(24),
+        'fav_numbers': np.array([2,4,3]),
+        # 'fav_flowers': ['peonies', 'japanese ranunculi'],
+        # 'fav_names': {
+        #     'girls': ['Eudora', 'Innisfallen', 'Harryo'],
+        #     'boys': ['Ashley', 'Tarwater']
+        # },
+        'fav_tensors': {
+            'levi_civita3d': np.array([[[0,0,0],[0,0,1],[0,-1,0]],[[0,0,-1],[0,0,0],[1,0,0]],[[0,1,0,],[-1,0,0],[0,0,0]]]),
+            'kronecker2d': np.identity(3)
+        }
+    }
+    ReportInterface.__save_dict_to_hdf5__(ex, 'geco_statistics_test_hdf5_dict_example.hdf5')
+    loaded = ReportInterface.__load_dict_from_hdf5__('geco_statistics_test_hdf5_dict_example.hdf5')
+    np.testing.assert_equal(loaded, ex), "HDF5 dict saving utilities failing."
+
+    # TODO: Add in tests for creating time intervals from strings
+    # TODO: Add in HDF5 save/load tests for all classes
+
+    clean_up()
+    print 'Unit tests passed!'
+
+def clean_up():
+    """
+    Clean up side-effects after unit and integration tests have been run.
+    """
+    if os.path.exists('geco_statistics_test_hdf5_dict_example.hdf5'):
+        os.remove('geco_statistics_test_hdf5_dict_example.hdf5')

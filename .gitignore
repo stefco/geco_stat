@@ -1,3 +1,6 @@
 /env/
 geco_statistics.pyc
 *.swp
+*egg-info
+dist
+build

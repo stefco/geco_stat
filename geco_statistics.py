@@ -4,12 +4,12 @@ import bisect
 import os
 import subprocess
 import datetime
-import h5py
+import h5py             # >=2.5.0
 import abc
-import numpy as np
+import numpy as np      # >=1.10.4
 
 VERSION = '0.1'
-RELEASE = '0.1.1'
+RELEASE = '0.1.2'
 DEFAULT_BITRATE = 16384
 
 class VersionError(Exception):

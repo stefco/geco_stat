@@ -30,3 +30,7 @@ can use Python, though iPython is recommended for interactive use. [You can
 install iPython from the project website.](http://ipython.org) If you are
 running this module on a LIGO production environment, no additional
 dependencies should be necessary.
+
+You can get around any of these problems by just running `create_virtualenv.sh`
+(though this does require virtualenv) and then running
+`source env/bin/activate`, after which `python` will work just fine.

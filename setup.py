@@ -21,14 +21,14 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='sample',
+    name='geco_stat',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     version=geco_statistics.RELEASE,
 
-    description='A sample Python project',
+    description='Diagnostic tools for the advanced LIGO timing distribution system.',
     long_description=long_description,
 
     # The project's main homepage.

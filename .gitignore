@@ -1,3 +1,5 @@
 /env/
 geco_statistics.pyc
 *.swp
+_static/
+_templates

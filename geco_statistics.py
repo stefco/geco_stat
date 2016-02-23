@@ -8,7 +8,8 @@ import h5py
 import abc
 import numpy as np
 
-VERSION = '0.1.0'
+VERSION = '0.1'
+RELEASE = '0.1.1'
 DEFAULT_BITRATE = 16384
 
 class VersionError(Exception):
@@ -1272,7 +1273,7 @@ class ReportSet(ReportInterface):
     the input data.
     """
 
-    # TODO Add description
+    # TODO Add notes, full intended time, current work block, and is_finished method
     def __init__(self,
             report_class_name,
             bitrate                 = DEFAULT_BITRATE,
@@ -1500,6 +1501,8 @@ def run_unit_tests():
     TimeIntervalSet()
     Histogram()
     Statistics()
+
+    # TODO: make a timeseries and then from there unit test everything else
 
     print 'Testing TimeIntervalSet arithmetic.'
     assert TimeIntervalSet([66,69]) + TimeIntervalSet([67,72]) == TimeIntervalSet([66,72]), "Union failing"

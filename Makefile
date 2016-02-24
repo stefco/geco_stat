@@ -4,7 +4,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build-2.7
+SPHINXBUILD   = sphinx-build
 TWINEBUILD    = twine
 PAPER         =
 BUILDDIR      = _build
@@ -80,6 +80,8 @@ env:
 	if ! [ -e "./env" ]; then virtualenv env; fi
 # Install some stuff required for pip packaging and development
 	env/bin/pip install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
+# Install sphinx itself
+	env/bin/pip install -U "sphinx" "recommonmark"
 # Install required packages
 	env/bin/pip install -U "numpy" "matplotlib" "h5py"
 	printf "\nDone setting up! Run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"

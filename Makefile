@@ -64,6 +64,7 @@ clean:
 	rm -rf $(PYPIBUILDDIR)
 	rm -rf $(PYPIDISTDIR)
 	rm -rf *egg-info
+	rm *.pyc
 
 pypi:
 	python setup.py sdist

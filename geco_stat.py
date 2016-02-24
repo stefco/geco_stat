@@ -531,12 +531,9 @@ class TimeIntervalSet(ReportInterface):
         Return a list of TimeIntervalSets corresponding to time intervals
         covered by the frame files covering this time range. For example,
 
-        >>> TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
-        [
-            TimeIntervalSet([64.0, 128.0]),
-            TimeIntervalSet([128.0, 192.0]),
-            TimeIntervalSet([256.0, 320.0])
-        ]
+        >>> TSet = geco_stat.TimeIntervalSet
+        >>> geco_stat.TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
+        [geco_stat.TimeIntervalSet([64.0, 128.0]), geco_stat.TimeIntervalSet([128.0, 192.0]), geco_stat.TimeIntervalSet([256.0, 320.0])]
 
         The input TimeIntervalSet instance must start and end on a valid
         frame file time (an integer multiple of 64) or else an error will

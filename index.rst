@@ -14,7 +14,6 @@ Contents:
    README.md
    geco_stat.rst
 
-
 Indices and tables
 ==================
 

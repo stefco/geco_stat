@@ -2,6 +2,7 @@
 geco_statistics.pyc
 *.swp
 *egg-info
+*.pyc
 dist
 build
 _build

@@ -9,7 +9,7 @@ import abc
 import numpy as np      # >=1.10.4
 
 VERSION = '0.1'
-RELEASE = '0.1.2'
+RELEASE = '0.1.3'
 DEFAULT_BITRATE = 16384
 
 class VersionError(Exception):

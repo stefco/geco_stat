@@ -18,13 +18,14 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help check check-twine check-sphinx check-env clean pypi upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest coverage gettext
+.PHONY: help check check-twine check-sphinx check-env clean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  check      to check dependencies"
 	@echo "  env        to create a virtualenv for development"
-	@echo "  pypi       to make packages for upload to PyPI"
+	@echo "  pypi       to build and upload packages to PyPI"
+	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
 	@echo "  html       to make standalone HTML files"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
@@ -52,7 +53,7 @@ help:
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
 # User-friendly check for all dependencies.
-check: check-twine check-sphinx check-env
+check: check-env check-twine check-sphinx
 	echo Dependency checks passed!
 
 # User-friendly check for twine. indentation puts it in the test proper... v confusing...
@@ -92,7 +93,9 @@ clean:
 	rm -rf env
 	printf "\nIf you were in a virtualenv, run deactivate; it will no longer work\n\n"
 
-pypi: check-env
+pypi: build upload
+
+build: check-env
 	python setup.py sdist
 	python setup.py bdist_wheel
 	@echo "Build finished. You can now upload by running make upload (did you update release?)"

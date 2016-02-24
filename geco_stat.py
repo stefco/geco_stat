@@ -1093,8 +1093,7 @@ class AbstractReport(ReportInterface):
     on the time intervals included, and finally, multiple histograms
     covering multiple "zoom" levels, for a tailored view of the data.
 
-    Arguments
-    ---------
+    Arguments:
     bitrate         the bitrate of the signal considered. defaults to 16384.
 
     time_intervals  the time intervals over which the data used to create

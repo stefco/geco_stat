@@ -1,5 +1,7 @@
 # Introduction to GECo Statistics Reports
 
+[![Documentation Status](https://readthedocs.org/projects/geco-statistics/badge/?version=latest)](http://geco-statistics.readthedocs.org/en/latest/?badge=latest)
+
 ## Purpose
 
 `geco_stat` can be used to easily generate histograms, statistics, and

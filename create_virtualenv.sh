@@ -7,6 +7,12 @@ set -o errexit
 set -o nounset
 set -o noclobber
 
+cat <<__EOF__
+
+Configuring a virtual environment for python...
+
+__EOF__
+
 # Install a virtualenv to allow for local development and usage.
 # Requires virtualenv if env/ directory does not exist already.
 if ! [ -e "./env" ]
@@ -16,6 +22,9 @@ fi
 
 # Install some stuff required for pip packaging and development
 env/bin/pip install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
+
+# Install required packages
+env/bin/pip install -U "numpy" "matplotlib" "h5py"
 
 # Install required packages into the virtualenv
 if [ -e "requirements.txt" ]

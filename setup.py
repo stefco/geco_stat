@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-import geco_statistics
+import geco_stat
 
 here = path.abspath(path.dirname(__file__))
 
@@ -26,13 +26,13 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version=geco_statistics.RELEASE,
+    version=geco_stat.RELEASE,
 
     description='Diagnostic tools for the advanced LIGO timing distribution system.',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/stefco/geco_statistics',
+    url='https://github.com/stefco/geco_stat',
 
     # Author details
     author='Stefan Countryman',
@@ -77,7 +77,7 @@ setup(
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    py_modules=["geco_statistics"],
+    py_modules=["geco_stat"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's

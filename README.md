@@ -1,4 +1,4 @@
-# Timing Statistics Reports
+# Introduction to GECo Statistics Reports
 
 ## Purpose
 

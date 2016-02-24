@@ -11,6 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   README.md
+   geco_stat.rst
 
 
 Indices and tables

@@ -1,11 +1,20 @@
 # Makefile for Sphinx documentation
+# Modified for PyPI usage
 #
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build-2.7
+TWINEBUILD    = twine
 PAPER         =
 BUILDDIR      = _build
+PYPIBUILDDIR  = build
+PYPIDISTDIR   = dist
+
+# User-friendly check for twine
+ifeq ($(shell which $(TWINEBUILD) >/dev/null 2>&1; echo $$?), 1)
+$(error The '$(TWINEBUILD)' command was not found. Make sure you have Twine installed, which you can do with 'pip install twine'. See this link for more details on using Twine and PyPI: http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py)
+endif
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
@@ -19,10 +28,12 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest coverage gettext
+.PHONY: help clean pypi upload html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
+	@echo "  pypi       to make packages for upload to PyPI"
+	@echo "  upload     to upload finished PyPI packages"
 	@echo "  html       to make standalone HTML files"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
@@ -49,7 +60,18 @@ help:
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf $(BUILDDIR)
+	rm -rf $(PYPIBUILDDIR)
+	rm -rf $(PYPIDISTDIR)
+	rm -rf *egg-info
+
+pypi:
+	python setup.py sdist
+	python setup.py bdist_wheel
+	@echo "Build finished. You can now upload by running make upload (did you update release?)"
+
+upload:
+	$(TWINEBUILD) upload $(PYPIDISTDIR)/*
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

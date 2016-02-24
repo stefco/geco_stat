@@ -172,9 +172,32 @@ class ReportInterface(object):
         Save a dictionary whose contents are only strings, np.float64, np.int64,
         np.ndarray, and other dictionaries following this structure
         to an HDF5 file. These are the sorts of dictionaries that are meant
-        to be produced by the ReportInterface__to_dict__() method.
+        to be produced by the ReportInterface__to_dict__() method. The saved
+        dictionary can then be loaded using __load_dict_to_hdf5__(), and the
+        contents of the loaded dictionary will be the same as those of the
+        original:
+
+        >>> ex = {
+        >>>     'name': 'stefan',
+        >>>     'age':  np.int64(24),
+        >>>     'fav_numbers': np.array([2,4,4.3]),
+        >>>     'fav_tensors': {
+        >>>         'levi_civita3d': np.array([
+        >>>             [[0,0,0],[0,0,1],[0,-1,0]],
+        >>>             [[0,0,-1],[0,0,0],[1,0,0]],
+        >>>             [[0,1,0],[-1,0,0],[0,0,0]]
+        >>>         ]),
+        >>>         'kronecker2d': np.identity(3)
+        >>>     }
+        >>> }
+        >>> ReportInterface.__save_dict_to_hdf5__(ex, 'foo.hdf5')
+        >>> loaded = ReportInterface.__load_dict_from_hdf5__('foo.hdf5')
+        >>> np.testing.assert_equal(loaded, ex), "HDF5 dict saving utilities failing."
+        True
         """
-        assert not os.path.exists(filename), 'this is a noclobber operation bud'
+
+        if os.path.exists(filename):
+            raise ValueError('File %s exists, will not overwrite.' % filename)
         with h5py.File(filename, 'w') as h5file:
             cls.__recursively_save_dict_contents_to_group__(h5file, '/', dic)
 
@@ -185,21 +208,27 @@ class ReportInterface(object):
         at the current path location. Can call itself recursively to fill
         out HDF5 files with the contents of a dictionary.
         """
-        assert type(dic) is types.DictionaryType, "must provide a dictionary"
-        assert type(path) is types.StringType, "path must be a string"
-        assert type(h5file) is h5py._hl.files.File, "must be an open h5py file"
+        if not type(dic) is types.DictionaryType:
+            raise ValueError("must provide a dictionary")
+        if not type(path) is types.StringType:
+            raise ValueError("path must be a string")
+        if not type(h5file) is h5py._hl.files.File:
+            raise ValueError("must be an open h5py file")
         for key in dic:
-            assert type(key) == types.StringType, 'dict keys must be strings to save to hdf5'
-            # TODO: save some funky numbers like 4.3 that have shit float64
-            # representations to confirm that these are getting converted to
-            # np.float64 early and therefore are not being unpredictably
-            # mutilated by this saving method
+            if not type(key) == types.StringType:
+                raise ValueError("dict keys must be strings to save to hdf5")
             if type(dic[key]) in (np.int64, np.float64, types.StringType):
                 h5file[path + key] = dic[key]
-                assert h5file[path + key].value == dic[key], 'The data representation in the HDF5 file does not match the original dict.'
+                if not h5file[path + key].value == dic[key]:
+                    raise ValueError(
+                        'The data representation in the HDF5 file does not match the original dict.'
+                    )
             if type(dic[key]) is np.ndarray:
                 h5file[path + key] = dic[key]
-                assert np.array_equal(h5file[path + key].value, dic[key]), 'The data representation in the HDF5 file does not match the original dict.'
+                if not np.array_equal(h5file[path + key].value, dic[key]):
+                    raise ValueError(
+                        'The data representation in the HDF5 file does not match the original dict.'
+                    )
             elif type(dic[key]) is types.DictionaryType:
                 cls.__recursively_save_dict_contents_to_group__(h5file, path + key + '/', dic[key])
 
@@ -502,11 +531,12 @@ class TimeIntervalSet(ReportInterface):
         Return a list of TimeIntervalSets corresponding to time intervals
         covered by the frame files covering this time range. For example,
 
-            [6400, 6528)
-
-        would be split into
-
-            [[6400, 6464), [6464, 6528)]
+        >>> TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
+        [
+            TimeIntervalSet([64.0, 128.0]),
+            TimeIntervalSet([128.0, 192.0]),
+            TimeIntervalSet([256.0, 320.0])
+        ]
 
         The input TimeIntervalSet instance must start and end on a valid
         frame file time (an integer multiple of 64) or else an error will
@@ -772,7 +802,7 @@ class TimeIntervalSet(ReportInterface):
 
     def __repr__(self):
         self._assert_self_consistent()
-        return 'geco_statistics.TimeIntervalSet(' + repr(list(self._data)) + ')'
+        return __name__ + '.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
     def from_timeseries(self, timeseries):
         """Just clone the TimeIntervalSet belonging to the Timeseries"""
@@ -1527,29 +1557,8 @@ def run_unit_tests():
         raise AssertionError('Should not be able to split a time interval not having round endpoints')
     except AssertionError:
         pass
-    assert (TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
-            == [TimeIntervalSet([64,128]),
-                TimeIntervalSet([128,192]),
-                TimeIntervalSet([256,320])]), 'TimeIntervalSet splitting failed'
 
-    print 'Testing HDF5 file saving capabilities'
-    ex = {
-        'name': 'stefan',
-        'age':  np.int64(24),
-        'fav_numbers': np.array([2,4,3]),
-        # 'fav_flowers': ['peonies', 'japanese ranunculi'],
-        # 'fav_names': {
-        #     'girls': ['Eudora', 'Innisfallen', 'Harryo'],
-        #     'boys': ['Ashley', 'Tarwater']
-        # },
-        'fav_tensors': {
-            'levi_civita3d': np.array([[[0,0,0],[0,0,1],[0,-1,0]],[[0,0,-1],[0,0,0],[1,0,0]],[[0,1,0,],[-1,0,0],[0,0,0]]]),
-            'kronecker2d': np.identity(3)
-        }
-    }
-    ReportInterface.__save_dict_to_hdf5__(ex, 'geco_statistics_test_hdf5_dict_example.hdf5')
-    loaded = ReportInterface.__load_dict_from_hdf5__('geco_statistics_test_hdf5_dict_example.hdf5')
-    np.testing.assert_equal(loaded, ex), "HDF5 dict saving utilities failing."
+    print 'HDF5 file saving capabilities now in doctest.'
 
     # TODO: Add in tests for creating time intervals from strings
     # TODO: Add in HDF5 save/load tests for all classes

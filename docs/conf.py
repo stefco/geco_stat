@@ -41,7 +41,7 @@ extensions = [
 templates_path = ['_templates']
 
 # Add geco_stat to the project path
-sys.path.insert(0,os.path.abspath('./'))
+sys.path.insert(0,os.path.abspath('../'))
 
 # Add markdown support
 from recommonmark.parser import CommonMarkParser

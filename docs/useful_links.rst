@@ -20,6 +20,8 @@ Distribution using PyPI and pip
 * https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 * https://pypi.python.org/pypi?%3Aaction=list_classifiers
 * https://python-packaging.readthedocs.org/en/latest/minimal.html
+* Setting up a `requirements.txt` file that automatically gets required
+  dependencies from the `setup.py` file: https://caremad.io/2013/07/setup-vs-requirement/
 
 Running a function from the Command Line
 ----------------------------------------
@@ -35,8 +37,8 @@ Using Read the Docs for Documentation
 Writing in Restructured Text (reST)
 -----------------------------------
 
-I'm used to markdown, so this comparison of Restructured Text (reST) was very
-helpful: http://www.unexpected-vortices.com/doc-notes/markdown-and-rest-compared.html
+* I'm used to markdown, so this comparison of Restructured Text (reST) was very
+  helpful: http://www.unexpected-vortices.com/doc-notes/markdown-and-rest-compared.html
 
 Misc.
 -----

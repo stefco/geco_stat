@@ -70,7 +70,7 @@ help:
 
 # User-friendly check for all dependencies.
 check: check-env check-twine check-sphinx
-	echo Dependency checks passed!
+	printf "\nDependency checks passed!\n"
 
 # User-friendly check for twine. indentation puts it in the test proper... v confusing...
 check-twine:
@@ -90,9 +90,9 @@ ifndef VIR_ENV_PRE
 	$(error 'VIR_ENV_PRE is undefined; this means you are not working in a virtual environment and do not have one installed in this directory. Run "make env" to install a virtual environment using python virtualenv and follow instructions to activate it.')
 else
 ifdef VIRTUAL_ENV
-	printf "virtual environment ACTIVE, VIRTUAL_ENV is set.\n"
+	printf "\nvirtual environment ACTIVE, VIRTUAL_ENV is set.\n\nRun\n\n\tdeactivate\n\nto deactivate.\n\n"
 else
-	printf "virtual environment INACTIVE, VIRTUAL_ENV is not set.\n"
+	printf "\nvirtual environment INACTIVE, VIRTUAL_ENV is not set.\n\nRun\n\n\tsource env/bin/activate\n\nto activate.\n\n"
 endif
 	printf "environment used by make: $(VIR_ENV_PRE) \n"
 endif

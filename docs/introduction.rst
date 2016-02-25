@@ -29,7 +29,9 @@ environments; it is intended primarily to be run on LIGO servers, though
 future implementations may integrate remote access tools.
 
 **If you are just interested in viewing existing diagnostic report data**, you
-can use Python, though iPython is recommended for interactive use. [You can
-install iPython from the project website.](http://ipython.org) If you are
+can use Python, though iPython is recommended for interactive use. `You can
+install iPython from the project website`_. If you are
 running this module on a LIGO production environment, no additional
 dependencies should be necessary.
+
+.. _You can install iPython from the project website: http://ipython.org

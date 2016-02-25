@@ -1,7 +1,9 @@
 # Introduction to GECo Statistics Reports
 
+[![PyPI Version](https://img.shields.io/pypi/v/geco-stat.svg)](https://pypi.python.org/pypi/geco-stat)
+[![PyPI Project Status](https://img.shields.io/pypi/status/geco-stat.svg)](https://pypi.python.org/pypi/geco-stat)
 [![Documentation Status](https://readthedocs.org/projects/geco-statistics/badge/?version=latest)](http://geco-statistics.readthedocs.org/en/latest/?badge=latest)
-[ ![Codeship Status for stefco/geco_stat](https://codeship.com/projects/e9762300-bd59-0133-0ed3-2a1d867cc1c8/status?branch=master)](https://codeship.com/projects/136547)
+[![Codeship Test Status](https://img.shields.io/codeship/e9762300-bd59-0133-0ed3-2a1d867cc1c8/master.svg)](https://codeship.com/projects/136547)
 
 ## Purpose
 

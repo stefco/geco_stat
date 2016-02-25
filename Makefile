@@ -88,7 +88,12 @@ check-env:
 ifndef VIR_ENV_PRE
 	$(error 'VIR_ENV_PRE is undefined; this means you are not working in a virtual environment and do not have one installed in this directory. Run "make env" to install a virtual environment using python virtualenv and follow instructions to activate it.')
 else
-	printf "environment found: $(VIR_ENV_PRE)\n"
+ifdef VIRTUAL_ENV
+	printf "virtual environment ACTIVE, VIRTUAL_ENV is set.\n"
+else
+	printf "virtual environment INACTIVE, VIRTUAL_ENV is not set.\n"
+endif
+	printf "environment used by make: $(VIR_ENV_PRE) \n"
 endif
 
 env:
@@ -125,7 +130,7 @@ pypi: build upload
 
 build: check-env
 	$(PYTHON) setup.py sdist
-	$(PYTHON) setup.py bdist_wheel
+	$(PYTHON) setup.py bdist_wheel --universal
 	@echo "Build finished. You can now upload by running make upload (did you update release?)"
 
 upload: check-env check-twine

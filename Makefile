@@ -2,14 +2,26 @@
 # Modified for PyPI usage
 #
 
+# virtualenv prefix
+ifdef VIRTUAL_ENV
+VIR_ENV_PRE   = $(VIRTUAL_ENV)/bin/
+else
+ifneq ($(shell test -d env/bin), 0)
+VIR_ENV_PRE   = $(shell pwd -P)/env/bin/
+endif
+endif
+
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
-TWINEBUILD    = twine
+SPHINXBUILD   = $(VIR_ENV_PRE)sphinx-build
+PYTHON        = $(VIR_ENV_PRE)python
+TWINE         = $(VIR_ENV_PRE)twine
+PIP           = $(VIR_ENV_PRE)pip
 PAPER         =
 BUILDDIR      = _build
 PYPIBUILDDIR  = build
 PYPIDISTDIR   = dist
+MODULENAME    = geco_stat
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -18,16 +30,18 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help check check-twine check-sphinx check-env clean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest coverage gettext
+.PHONY: help check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  check      to check dependencies"
 	@echo "  env        to create a virtualenv for development"
-	@echo "  pypi       to build and upload packages to PyPI"
+	@echo "  check      to check dependencies"
+	@echo "  pypi       to build and upload packages to PyPI all at once"
 	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
 	@echo "  html       to make standalone HTML files"
+	@echo "  clean      to remove generated files, but keep the env folder"
+	@echo "  distclean  to remove generated files as well as the env folder"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
 	@echo "  pickle     to make pickle files"
@@ -49,6 +63,7 @@ help:
 	@echo "  xml        to make Docutils-native XML files"
 	@echo "  pseudoxml  to make pseudoxml-XML files for display purposes"
 	@echo "  linkcheck  to check all external links for integrity"
+	@echo "  test       to run all doctests as well as unit tests"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
@@ -58,20 +73,22 @@ check: check-env check-twine check-sphinx
 
 # User-friendly check for twine. indentation puts it in the test proper... v confusing...
 check-twine:
-ifeq ($(shell which $(TWINEBUILD) >/dev/null 2>&1; echo $$?), 1)
-	$(error The '$(TWINEBUILD)' command was not found. Make sure you have Twine installed, which you can do with 'pip install twine'. See this link for more details on using Twine and PyPI: http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py)
+ifeq ($(shell which $(TWINE) >/dev/null 2>&1; echo $$?), 1)
+	$(error The '$(TWINE)' command was not found. Make sure you have Twine installed, which you can do with 'pip install twine'. See this link for more details on using Twine and PyPI: http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#setup-py)
 endif
 
 # User-friendly check for sphinx-build
 check-sphinx:
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
-	$(error The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed, then set the SPHINXBUILD environment variable to point to the full path of the '$(SPHINXBUILD)' executable. Alternatively you can add the directory with the executable to your PATH. If you don't have Sphinx installed, grab it from http://sphinx-doc.org/)
+	$(error The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed, then set the SPHINXBUILD environment variable to point to the full path of the '$(SPHINXBUILD)' executable. Alternatively you can add the directory with the executable to your PATH. If you don not have Sphinx installed, grab it from http://sphinx-doc.org/)
 endif
 
 # User-friendly check for virtualenv
 check-env:
-ifndef VIRTUAL_ENV
-	$(error 'VIRTUAL_ENV is undefined; this means you are not working in a virtual environment, which you should ideally be doing. Run "make env" to install a virtual environment using python virtualenv and follow instructions to activate it.')
+ifndef VIR_ENV_PRE
+	$(error 'VIR_ENV_PRE is undefined; this means you are not working in a virtual environment and do not have one installed in this directory. Run "make env" to install a virtual environment using python virtualenv and follow instructions to activate it.')
+else
+	printf "environment found: $(VIR_ENV_PRE)\n"
 endif
 
 env:
@@ -79,12 +96,12 @@ env:
 # Install a virtualenv to allow for local development and usage.
 	if ! [ -e "./env" ]; then virtualenv env; fi
 # Install some stuff required for pip packaging and development
-	env/bin/pip install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
+	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
 # Install sphinx itself
-	env/bin/pip install -U "sphinx" "recommonmark"
+	$(PIP) install -U "sphinx" "recommonmark"
 # Install required packages
-	env/bin/pip install -U "numpy" "matplotlib" "h5py"
-	printf "\nDone setting up! Run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"
+	$(PIP) install -U "numpy" "matplotlib" "h5py"
+	printf "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"
 
 clean:
 # Delete autogenerated sphinx files
@@ -97,6 +114,8 @@ clean:
 	rm -rf *egg-info
 # Delete autogenerated .pyc files
 	rm -rf *.pyc
+
+distclean: clean
 # Delete virtualenv
 	echo "Deleting virtualenv..."
 	rm -rf env
@@ -105,12 +124,12 @@ clean:
 pypi: build upload
 
 build: check-env
-	python setup.py sdist
-	python setup.py bdist_wheel
+	$(PYTHON) setup.py sdist
+	$(PYTHON) setup.py bdist_wheel
 	@echo "Build finished. You can now upload by running make upload (did you update release?)"
 
 upload: check-env check-twine
-	$(TWINEBUILD) upload $(PYPIDISTDIR)/*
+	$(TWINE) upload $(PYPIDISTDIR)/*
 
 html: check-sphinx
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -231,6 +250,10 @@ linkcheck: check-sphinx
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
+
+test: doctest
+	printf "\nRunning unit tests...\n\n"
+	$(PYTHON) -c "import $(MODULENAME); $(MODULENAME).run_unit_tests()"
 
 doctest: check-sphinx
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest

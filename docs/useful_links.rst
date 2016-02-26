@@ -1,5 +1,5 @@
-Useful Links
-============
+Bibliography (Useful Links)
+===========================
 
 The following links have proved useful in creating, documenting, testing, and
 deploying this package.
@@ -37,6 +37,12 @@ Running a function from the Command Line
 
 * https://docs.python.org/2/tutorial/modules.html#executing-modules-as-scripts
 * http://stackoverflow.com/questions/34952745/how-can-one-enable-a-shell-command-line-argument-for-a-python-package-installed
+* How to make sure that only a single instance of your code is running:
+  http://blog.tplus1.com/blog/2012/08/08/python-allow-only-one-running-instance-of-a-script/
+* A stackoverflow question on the topic with some nice alternative approaches:
+  http://stackoverflow.com/questions/380870/python-single-instance-of-program
+* Documentation on ``sys.excepthook``, used to call cleanup code right before
+  exiting when your program crashes: https://docs.python.org/2/library/sys.html
 
 Using Read the Docs for Documentation
 -------------------------------------
@@ -56,6 +62,11 @@ Python
 
 * A very good guide to python method decorators: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
 * Detailed description of ``super()``: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
+
+Vim Fun
+-------
+
+* Negative regex matching: http://vim.wikia.com/wiki/Search_for_lines_not_containing_pattern_and_other_helpful_searches
 
 Misc.
 -----

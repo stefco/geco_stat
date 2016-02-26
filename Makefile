@@ -128,7 +128,7 @@ pypi: build upload
 build: check-env
 	$(PYTHON) setup.py sdist
 	$(PYTHON) setup.py bdist_wheel --universal
-	@echo "Build finished. You can now upload by running make upload (did you update release?)"
+	@echo "Build finished. You can now upload by running make upload (did you update version.py?)"
 
 upload: check-env check-twine
 	$(TWINE) upload $(PYPIDISTDIR)/*

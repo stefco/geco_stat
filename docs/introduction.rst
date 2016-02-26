@@ -35,3 +35,28 @@ running this module on a LIGO production environment, no additional
 dependencies should be necessary.
 
 .. _You can install iPython from the project website: http://ipython.org
+
+Getting Started
+---------------
+
+Install with ``pip``:
+
+::
+
+    pip install --upgrade geco-stats
+
+If you don't have root privileges (as is probably the case on a LIGO server),
+change to the directory where you would like to work and run:
+
+::
+
+    virtualenv env
+    source env/bin/activate
+    pip install --upgrade geco-stats
+
+When you are done using your ``virtualenv``, you can run ``deactivate`` to go
+back to using your regular system install of ``python`` and associated tools.
+
+If you are developing or working from source, visit the `github repository`_.
+
+.. _github repository: https://github.com/stefco/geco_stat

@@ -4,6 +4,11 @@ Useful Links
 The following links have proved useful in creating, documenting, testing, and
 deploying this package.
 
+Anomaly and Outlier Detection
+-----------------------------
+
+* http://scikit-learn.org/stable/modules/outlier_detection.html
+
 Documentation and Testing using Sphinx
 --------------------------------------
 
@@ -20,8 +25,12 @@ Distribution using PyPI and pip
 * https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 * https://pypi.python.org/pypi?%3Aaction=list_classifiers
 * https://python-packaging.readthedocs.org/en/latest/minimal.html
-* Setting up a `requirements.txt` file that automatically gets required
-  dependencies from the `setup.py` file: https://caremad.io/2013/07/setup-vs-requirement/
+* Setting up a ``requirements.txt`` file that automatically gets required
+  dependencies from the ``setup.py`` file: https://caremad.io/2013/07/setup-vs-requirement/
+* A little bit more discussion of the ``setup.py`` ``install_requires``
+  variable: https://packaging.python.org/en/latest/requirements/
+* Including extra requirements for nonstandard usage:
+  https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 Running a function from the Command Line
 ----------------------------------------
@@ -33,12 +42,20 @@ Using Read the Docs for Documentation
 -------------------------------------
 
 * https://read-the-docs.readthedocs.org/en/latest/getting_started.html
+* Astropy is a very good (and thorough) example of advanced Read The Docs
+  support in Python: https://github.com/astropy/astropy
 
 Writing in Restructured Text (reST)
 -----------------------------------
 
 * I'm used to markdown, so this comparison of Restructured Text (reST) was very
   helpful: http://www.unexpected-vortices.com/doc-notes/markdown-and-rest-compared.html
+
+Python
+------
+
+* A very good guide to python method decorators: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
+* Detailed description of ``super()``: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
 
 Misc.
 -----

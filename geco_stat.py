@@ -62,7 +62,7 @@ class Timeseries(np.ndarray):
         # set up the processes for acquiring and processing the data
         dump = subprocess.Popen(["framecpp_dump_channel","--channel",channel_name,path], stdout=subprocess.PIPE)
         data_string = dump.communicate()[0]
-        print now() + ' Timeseries retrieved, beginning processing.'
+        # print now() + ' Timeseries retrieved, beginning processing.'
 
         # remove headers from the data
         formatted_data_string = cls.__remove_header_and_text__(data_string)

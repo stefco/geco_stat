@@ -165,7 +165,7 @@ class ReportInterface(object):
     @classmethod
     def load_hdf5(cls, filename):
         """Load an instance saved in an hdf5 file."""
-        return cls.__from_dict__(cls.__load_dict_from_hdf5__(filename))
+        return cls.__from_dict__(__load_dict_from_hdf5__(filename))
 
     @classmethod
     def __save_dict_to_hdf5__(cls, dic, filename):
@@ -176,27 +176,8 @@ class ReportInterface(object):
         to be produced by the ReportInterface__to_dict__() method. The saved
         dictionary can then be loaded using __load_dict_to_hdf5__(), and the
         contents of the loaded dictionary will be the same as those of the
-        original:
-
-        >>> ex = {
-        >>>     'name': 'stefan',
-        >>>     'age':  np.int64(24),
-        >>>     'fav_numbers': np.array([2,4,4.3]),
-        >>>     'fav_tensors': {
-        >>>         'levi_civita3d': np.array([
-        >>>             [[0,0,0],[0,0,1],[0,-1,0]],
-        >>>             [[0,0,-1],[0,0,0],[1,0,0]],
-        >>>             [[0,1,0],[-1,0,0],[0,0,0]]
-        >>>         ]),
-        >>>         'kronecker2d': np.identity(3)
-        >>>     }
-        >>> }
-        >>> ReportInterface.__save_dict_to_hdf5__(ex, 'foo.hdf5')
-        >>> loaded = ReportInterface.__load_dict_from_hdf5__('foo.hdf5')
-        >>> np.testing.assert_equal(loaded, ex), "HDF5 dict saving utilities failing."
-        True
+        original.
         """
-
         if os.path.exists(filename):
             raise ValueError('File %s exists, will not overwrite.' % filename)
         with h5py.File(filename, 'w') as h5file:
@@ -209,29 +190,33 @@ class ReportInterface(object):
         at the current path location. Can call itself recursively to fill
         out HDF5 files with the contents of a dictionary.
         """
-        if not type(dic) is types.DictionaryType:
+        # argument type checking
+        if not isinstance(dic, dict):
             raise ValueError("must provide a dictionary")
-        if not type(path) is types.StringType:
+        if not isinstance(path, str):
             raise ValueError("path must be a string")
-        if not type(h5file) is h5py._hl.files.File:
+        if not isinstance(h5file, h5py._hl.files.File):
             raise ValueError("must be an open h5py file")
-        for key in dic:
-            if not type(key) == types.StringType:
+        # save items to the hdf5 file
+        for key, item in dic.items():
+            if not isinstance(key, str):
                 raise ValueError("dict keys must be strings to save to hdf5")
-            if type(dic[key]) in (np.int64, np.float64, types.StringType):
-                h5file[path + key] = dic[key]
-                if not h5file[path + key].value == dic[key]:
-                    raise ValueError(
-                        'The data representation in the HDF5 file does not match the original dict.'
-                    )
-            if type(dic[key]) is np.ndarray:
-                h5file[path + key] = dic[key]
-                if not np.array_equal(h5file[path + key].value, dic[key]):
-                    raise ValueError(
-                        'The data representation in the HDF5 file does not match the original dict.'
-                    )
-            elif type(dic[key]) is types.DictionaryType:
-                cls.__recursively_save_dict_contents_to_group__(h5file, path + key + '/', dic[key])
+            # save strings, numpy.int64, and numpy.float64 types
+            if isinstance(item, (np.int64, np.float64, str)):
+                h5file[path + key] = item
+                if not h5file[path + key].value == item:
+                    raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+            # save numpy arrays
+            elif isinstance(item, np.ndarray):
+                h5file[path + key] = item
+                if not np.array_equal(h5file[path + key].value, item):
+                    raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+            # save dictionaries
+            elif isinstance(item, dict):
+                cls.__recursively_save_dict_contents_to_group__(h5file, path + key + '/', item)
+            # other types cannot be saved and will result in an error
+            else:
+                raise ValueError('Cannot save %s type.' % type(item))
 
     @classmethod
     def __load_dict_from_hdf5__(cls, filename):
@@ -253,9 +238,9 @@ class ReportInterface(object):
         """
         ans = {}
         for key, item in h5file[path].items():
-            if type(item) is h5py._hl.dataset.Dataset:
+            if isinstance(item, h5py._hl.dataset.Dataset):
                 ans[key] = item.value
-            elif type(item) is h5py._hl.group.Group:
+            elif isinstance(item, h5py._hl.group.Group):
                 ans[key] = cls.__recursively_load_dict_contents_from_group__(h5file, path + key + '/')
         return ans
 
@@ -1555,7 +1540,23 @@ def run_unit_tests():
     except AssertionError:
         pass
 
-    print 'HDF5 file saving capabilities now in doctest.'
+    print 'Testing HDF5 file saving capabilities.'
+    ex = {
+        'name': 'stefan',
+        'age':  np.int64(24),
+        'fav_numbers': np.array([2,4,4.3]),
+        'fav_tensors': {
+            'levi_civita3d': np.array([
+                [[0,0,0],[0,0,1],[0,-1,0]],
+                [[0,0,-1],[0,0,0],[1,0,0]],
+                [[0,1,0],[-1,0,0],[0,0,0]]
+            ]),
+            'kronecker2d': np.identity(3)
+        }
+    }
+    ReportInterface.__save_dict_to_hdf5__(ex, 'foo.hdf5')
+    loaded = ReportInterface.__load_dict_from_hdf5__('foo.hdf5')
+    np.testing.assert_equal(loaded, ex)
 
     # TODO: Add in tests for creating time intervals from strings
     # TODO: Add in HDF5 save/load tests for all classes

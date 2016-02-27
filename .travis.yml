@@ -36,6 +36,8 @@ install:
   - echo $OSTYPE
   # install requirements and module
   - pip install -r requirements.txt
+  # install documentation tools
+  - pip install "sphinx" "recommonmark"
   - pip install -e .
 
 script: make test

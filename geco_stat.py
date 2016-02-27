@@ -417,7 +417,7 @@ class TimeIntervalSet(ReportInterface):
             return other.clone()
         # iteratively union every interval in the other set into this set
         result = self.clone()
-        for i in range(0, len(other)/2):
+        for i in range(0, len(other)//2):
             # this part is (mostly)  shared between set algebra methods
             start  = other._data[2*i]
             end    = other._data[2*i + 1]
@@ -506,7 +506,7 @@ class TimeIntervalSet(ReportInterface):
         """
         cls = type(self)
         rounded_times = cls()
-        for i in range(0, len(self)/2):
+        for i in range(0, len(self)//2):
             rounded_times += cls([
                 cls.__find_frame_file_gps_start_time__(self._data[2*i]),
                 cls.__find_frame_file_gps_end_time__(self._data[2*i+1])
@@ -528,7 +528,7 @@ class TimeIntervalSet(ReportInterface):
         """
         assert self.round_to_frame_times() == self, "Can only split a rounded time interval"
         frame_intervals = []
-        for i in range(0, len(self)/2):
+        for i in range(0, len(self)//2):
             assert int(self._data[2*i]) == self._data[2*i], "Out of precision in floats, answer should be integer"
             assert int(self._data[2*i+1]) == self._data[2*i+1], "Out of precision in floats, answer should be integer"
             for start_time in range(int(self._data[2*i]), int(self._data[2*i+1]), 64):
@@ -574,7 +574,7 @@ class TimeIntervalSet(ReportInterface):
         if len(other) == 0 or len(self) == 0:
             return TimeIntervalSet()
         result = TimeIntervalSet()
-        for i in range(0, len(other)/2):
+        for i in range(0, len(other)//2):
             # this part is (mostly)  shared between set algebra methods
             start  = other._data[2*i]
             end    = other._data[2*i + 1]
@@ -609,7 +609,7 @@ class TimeIntervalSet(ReportInterface):
         if len(self) == 0:
             return other
         result = TimeIntervalSet()
-        for i in range(0, len(other)/2):
+        for i in range(0, len(other)//2):
             # this part is (mostly)  shared between set algebra methods
             start  = other._data[2*i]
             end    = other._data[2*i + 1]

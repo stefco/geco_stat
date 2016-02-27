@@ -99,6 +99,8 @@ Python Versions
 ---------------
 
 * ``execfile`` no longer exists in Python3.x; replace it with this:  http://stackoverflow.com/questions/6357361/alternative-to-execfile-in-python-3
+* ``/`` always returns a float in Python3.x; use ``//`` for integer division in
+  any version of Python: http://stackoverflow.com/questions/15173715/why-is-there-a-typeerror
 
 Misc.
 -----

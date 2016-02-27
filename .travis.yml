@@ -21,12 +21,14 @@ addons:
 python:
   - '2.6'
   - '2.7'
+  - '2.7_with_system_site_packages'
   - '3.2'
   - '3.3'
   - '3.4'
   - '3.5'
   - 3.5-dev
   - nightly
+  - 'pypy'
 
 sudo: false
 
@@ -43,7 +45,9 @@ install:
 
 script:
   # only run the doctest in Python2.7, since other versions have trouble digesting it
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then make doctest; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then make doctest; fi
+  # 2.6 requires unittest2 to run h5py
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install unittest2; fi
   - make unit-test
 
 deploy:

@@ -71,5 +71,7 @@ Vim Fun
 Misc.
 -----
 
+* How to schedule jobs on UNIX systems using `chrontab`: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
+* How to schedule larger cluster jobs using Condor: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
 * http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
 

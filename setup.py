@@ -84,13 +84,14 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy','h5py','matplotlib','tendo'],
+    install_requires=['matplotlib','numpy','h5py','tendo'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,docs,test]
     extras_require={
+    # dev extras should also exist in the Makefile for robustness on old setups
         'dev': ["pip>=1.4", "setuptools>=0.9", "wheel>=0.21", "twine", "ipython"],
         'docs': ["sphinx", "recommonmark"],
     #     'test': ['coverage'],

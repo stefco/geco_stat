@@ -101,8 +101,12 @@ env:
 	printf "\nConfiguring a virtual environment for python...\n\n"
 # Install a virtualenv to allow for local development and usage.
 	if ! [ -e "./env" ]; then virtualenv env; fi
+# Install some stuff required for pip packaging and development
+	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
+# Install sphinx itself
+	$(PIP) install -U "sphinx" "recommonmark"
 # Install required packages
-	$(PIP) install -U --requirement requirements.txt
+	env/bin/pip install -U "numpy" "matplotlib" "h5py" "tendo"
 	printf "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"
 
 clean:

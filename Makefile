@@ -3,6 +3,7 @@
 #
 
 # virtualenv prefix
+VIR_ENV_PRE   =
 ifdef VIRTUAL_ENV
 VIR_ENV_PRE   = $(VIRTUAL_ENV)/bin/
 else

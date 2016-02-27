@@ -12,7 +12,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-from version import __release__ as version
+# from version import __release__ as version
+execfile('version.py')
 
 here = path.abspath(path.dirname(__file__))
 
@@ -26,8 +27,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    # version=version.__release__,
-    version = version,
+    version = __release__,
 
     description='Diagnostic tools for the advanced LIGO timing distribution system.',
     long_description=long_description,

@@ -1,7 +1,7 @@
 language: python
 
-virtualenv:
-  system_site_packages: true
+# virtualenv:
+  # system_site_packages: true
 
 addons:
   apt:
@@ -12,8 +12,9 @@ addons:
       - python-dev
       - libblas-dev
       - liblapack-dev
+      - libhdf5-serial-dev
       # depenencies
-      - python-numpy
+      # - python-numpy
       - python-scipy
       - python-h5py
 

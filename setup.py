@@ -13,7 +13,8 @@ from codecs import open
 from os import path
 
 # from version import __release__ as version
-execfile('version.py')
+# for python3.x compatibility, ditch execfile
+exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'), globals, locals)
 
 here = path.abspath(path.dirname(__file__))
 
@@ -93,7 +94,7 @@ setup(
     extras_require={
     # dev extras should also exist in the Makefile for robustness on old setups
         'dev': ["pip>=1.4", "setuptools>=0.9", "wheel>=0.21", "twine", "ipython"],
-        'docs': ["sphinx", "recommonmark"],
+        'docs': ["sphinx"],
     #     'test': ['coverage'],
     },
 

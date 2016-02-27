@@ -9,7 +9,8 @@ import abc
 import numpy as np      # >=1.10.4
 
 # import the version numbers
-execfile('version.py')
+# for python3.x compatibility, ditch execfile
+exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'), globals, locals)
 
 DEFAULT_BITRATE = 16384
 

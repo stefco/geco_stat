@@ -63,15 +63,24 @@ Python
 * A very good guide to python method decorators: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
 * Detailed description of ``super()``: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
 
+Python on Travis CI:
+--------------------
+
+
 Vim Fun
 -------
 
 * Negative regex matching: http://vim.wikia.com/wiki/Search_for_lines_not_containing_pattern_and_other_helpful_searches
 
+Python Versions
+---------------
+
+* ``execfile`` no longer exists in Python3.x; replace it with this:  http://stackoverflow.com/questions/6357361/alternative-to-execfile-in-python-3
+
 Misc.
 -----
 
-* How to schedule jobs on UNIX systems using `chrontab`: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
+* How to schedule jobs on UNIX systems using ``chrontab``: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
 * How to schedule larger cluster jobs using Condor: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
 * How to determine what OS you are running on: http://stackoverflow.com/questions/394230/detect-the-os-from-a-bash-script
 * http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script

@@ -87,8 +87,8 @@ Python on Travis CI:
       - 2.7
       - "2.7_with_system_site_packages"
 
-  etc: https://github.com/travis-ci/travis-ci/issues/2219#issuecomment-41804942
-
+  (inclusion of other versions follows the same pattern): https://github.com/travis-ci/travis-ci/issues/2219#issuecomment-41804942
+* Test special requirements for each python version: http://stackoverflow.com/questions/20617600/travis-special-requirements-for-each-python-version
 
 Vim Fun
 -------

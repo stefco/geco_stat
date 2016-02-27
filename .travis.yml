@@ -41,7 +41,10 @@ install:
   - pip install "sphinx" "recommonmark"
   - pip install -e .
 
-script: make test
+script:
+  # only run the doctest in Python2.7, since other versions have trouble digesting it
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then make doctest; fi
+  - make unit-test
 
 deploy:
   provider: pypi

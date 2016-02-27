@@ -62,7 +62,7 @@ class Timeseries(np.ndarray):
         # set up the processes for acquiring and processing the data
         dump = subprocess.Popen(["framecpp_dump_channel","--channel",channel_name,path], stdout=subprocess.PIPE)
         data_string = dump.communicate()[0]
-        # print now() + ' Timeseries retrieved, beginning processing.'
+        # print(now() + ' Timeseries retrieved, beginning processing.')
 
         # remove headers from the data
         formatted_data_string = cls.__remove_header_and_text__(data_string)
@@ -1509,7 +1509,7 @@ class ReportSet(ReportInterface):
         return True
 
 def run_unit_tests():
-    print 'Testing class initializations.'
+    print('Testing class initializations.')
     Timeseries((16384,))
     TimeIntervalSet()
     Histogram()
@@ -1517,7 +1517,7 @@ def run_unit_tests():
 
     # TODO: make a timeseries and then from there unit test everything else
 
-    print 'Testing TimeIntervalSet arithmetic.'
+    print('Testing TimeIntervalSet arithmetic.')
     assert TimeIntervalSet([66,69]) + TimeIntervalSet([67,72]) == TimeIntervalSet([66,72]), "Union failing"
     assert TimeIntervalSet([66,69]) * TimeIntervalSet([67,72]) == TimeIntervalSet([67,69]), "Intersection failing"
     assert TimeIntervalSet([66,69]) + TimeIntervalSet([70,72]) == TimeIntervalSet([66,69,70,72]), "Union failing"
@@ -1525,23 +1525,23 @@ def run_unit_tests():
     assert TimeIntervalSet([66,73]) - TimeIntervalSet([66,73]) == TimeIntervalSet(), "Complement failing"
     # TODO: Add some more arithmetic assertions.
 
-    print 'Testing TimeIntervalSet frame time rounding.'
+    print('Testing TimeIntervalSet frame time rounding.')
     assert TimeIntervalSet([65,124]).round_to_frame_times() == TimeIntervalSet([64, 128]), "Rounding to frame times is failing"
     assert TimeIntervalSet([64,128]).round_to_frame_times() == TimeIntervalSet([64, 128]), "Rounding to frame times is failing"
     assert TimeIntervalSet([63,65,120,133]).round_to_frame_times() == TimeIntervalSet([0,192]), "Rounding to frame times is failing"
 
-    print 'Testing TimeIntervalSet length calculation.'
+    print('Testing TimeIntervalSet length calculation.')
     assert TimeIntervalSet([6400,6464]).combined_length() == 64, 'Time interval total length calculations are off'
     assert TimeIntervalSet([0,4,6400,6466]).combined_length() == 70, 'Time interval total length calculations are off'
 
-    print 'Testing TimeIntervalSet splitting into frame files.'
+    print('Testing TimeIntervalSet splitting into frame files.')
     try:
         TimeIntervalSet([66,68]).split_into_frame_file_intervals()
         raise AssertionError('Should not be able to split a time interval not having round endpoints')
     except AssertionError:
         pass
 
-    print 'Testing HDF5 file saving capabilities.'
+    print('Testing HDF5 file saving capabilities.')
     ex = {
         'name': 'stefan',
         'age':  np.int64(24),
@@ -1555,15 +1555,16 @@ def run_unit_tests():
             'kronecker2d': np.identity(3)
         }
     }
-    ReportInterface.__save_dict_to_hdf5__(ex, 'foo.hdf5')
-    loaded = ReportInterface.__load_dict_from_hdf5__('foo.hdf5')
+    ReportInterface.__save_dict_to_hdf5__(ex, 'geco_statistics_test_hdf5_dict_example.hdf5')
+    loaded = ReportInterface.__load_dict_from_hdf5__('geco_statistics_test_hdf5_dict_example.hdf5')
+    os.remove('geco_statistics_test_hdf5_dict_example.hdf5')
     np.testing.assert_equal(loaded, ex)
 
     # TODO: Add in tests for creating time intervals from strings
     # TODO: Add in HDF5 save/load tests for all classes
 
     clean_up()
-    print 'Unit tests passed!'
+    print('Unit tests passed!')
 
 def clean_up():
     """

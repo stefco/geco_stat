@@ -10,6 +10,7 @@ addons:
       - libblas-dev
       - liblapack-dev
       # depenencies
+      - libhdf5-dev
       - python-numpy
       - python-scipy
 

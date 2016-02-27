@@ -14,7 +14,7 @@ from os import path
 
 # from version import __release__ as version
 # for python3.x compatibility, ditch execfile
-exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'), globals, locals)
+exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'))
 
 here = path.abspath(path.dirname(__file__))
 

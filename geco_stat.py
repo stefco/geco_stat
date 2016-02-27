@@ -7,7 +7,9 @@ import datetime
 import h5py             # >=2.5.0
 import abc
 import numpy as np      # >=1.10.4
-from version import *
+
+# import the version numbers
+execfile('version.py')
 
 DEFAULT_BITRATE = 16384
 

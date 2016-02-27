@@ -73,5 +73,6 @@ Misc.
 
 * How to schedule jobs on UNIX systems using `chrontab`: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
 * How to schedule larger cluster jobs using Condor: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
+* How to determine what OS you are running on: http://stackoverflow.com/questions/394230/detect-the-os-from-a-bash-script
 * http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
 

@@ -10,9 +10,9 @@ addons:
       - libblas-dev
       - liblapack-dev
       # depenencies
-      - libhdf5-dev
       - python-numpy
       - python-scipy
+      - python-h5py
 
 python:
   - '2.6'

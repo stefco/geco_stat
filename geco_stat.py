@@ -7,9 +7,8 @@ import datetime
 import h5py             # >=2.5.0
 import abc
 import numpy as np      # >=1.10.4
+from version import *
 
-VERSION = '0.1'
-RELEASE = '0.1.3'
 DEFAULT_BITRATE = 16384
 
 class VersionError(Exception):
@@ -143,7 +142,7 @@ class Timeseries(np.ndarray):
 class ReportInterface(object):
     "Abstract interface used by all geco_statistics classes"
     __metaclass__  = abc.ABCMeta
-    _version = VERSION
+    __version__ = __version__
 
     def union(self, other):
         "Aggregate these two instances. Must be of compatible type."
@@ -375,7 +374,7 @@ class TimeIntervalSet(ReportInterface):
     potentially dangerous side-effects.
     """
 
-    def __init__(self, intervalSet=None, start=None, end=None, version=VERSION):
+    def __init__(self, intervalSet=None, start=None, end=None, version=__version__):
         """
         If no time interval is given at initialization, the TimeIntervalSet
         begins empty. There are two ways to initialize it with a nonempty set
@@ -397,7 +396,7 @@ class TimeIntervalSet(ReportInterface):
 
             [s, e)
         """
-        if version != self._version:
+        if version != self.__version__:
             raise VersionError()
         if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
@@ -693,7 +692,7 @@ class TimeIntervalSet(ReportInterface):
     def _confirm_unionability(self, other):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             raise ValueError('TimeIntervalSets have different versions')
         return True
 
@@ -755,7 +754,7 @@ class TimeIntervalSet(ReportInterface):
         return cls(d['data'], version=d['version'])
 
     def __to_dict__(self):
-        return {'data': np.array(self._data), 'version': self._version}
+        return {'data': np.array(self._data), 'version': self.__version__}
 
     def __eq__(self, other):
         return np.array_equal(self._data, other._data)
@@ -829,7 +828,7 @@ class Histogram(AbstractReportData):
             hist_range      = (-1e3, 1e3),
             hist_num_bins   = 256,
             bitrate         = DEFAULT_BITRATE,
-            version         = VERSION):
+            version         = __version__):
         """
         Initialize an instance of the class. All properties have default
         values corresponding to an empty statistics set; they can be
@@ -838,7 +837,7 @@ class Histogram(AbstractReportData):
         # make sure hist_range is an ordered pair of numbers
         if not len(hist_range) == 2:
             raise ValueError('second argument (hist_range) must have length 2')
-        if version != self._version:
+        if version != self.__version__:
             raise VersionError()
         elif hist_range[0] >= hist_range[1]:
             raise ValueError('minimum value of histogram bin range must be smaller than max')
@@ -879,15 +878,15 @@ class Histogram(AbstractReportData):
             raise ValueError('Histograms have different bin edges')
         if self.bitrate != other.bitrate:
             raise ValueError('Histograms have different bitrates')
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             raise ValueError('Histograms have different versions')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
         return True
 
     def _assert_self_consistent(self):
-        if self._version != VERSION:
-            raise ValueError('Histogram version ' + self._version + ' does not match lib version')
+        if self.__version__ != __version__:
+            raise ValueError('Histogram version ' + self.__version__ + ' does not match lib version')
         assert self.hist_bins == np.linspace(self.hist_range[0], self.hist_range[1], self.hist_num_bins+1)
         assert self.t_ticks == np.linspace(0,1,self.bitrate+1)
         assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
@@ -909,7 +908,7 @@ class Histogram(AbstractReportData):
             'hist_range': np.array(self.hist_range),
             'hist_num_bins': self.hist_num_bins,
             'bitrate': self.bitrate,
-            'version': self._version,
+            'version': self.__version__,
             'class': 'Histogram'
         }
 
@@ -934,7 +933,7 @@ class Histogram(AbstractReportData):
             return False
         if self.bitrate != other.bitrate:
             return False
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             return False
         if type(self) != type(other):
             return False
@@ -959,12 +958,12 @@ class Statistics(AbstractReportData):
             min             = None,
             num             = 0,
             bitrate         = DEFAULT_BITRATE,
-            version         = VERSION):
+            version         = __version__):
         """
         All properties have default values corresponding to an empty statistics
         set; they can be individually overridden.
         """
-        if version != self._version:
+        if version != self.__version__:
             raise VersionError()
 
         # set values of sum, sum_sq, and the histograms, since these depend on
@@ -1012,7 +1011,7 @@ class Statistics(AbstractReportData):
     def _confirm_unionability(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             raise ValueError('Statistics have different versions')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
@@ -1025,8 +1024,8 @@ class Statistics(AbstractReportData):
         assert self.min.shape == (self.bitrate,), "min should be vector with length equal to bitrate"
         assert np.int64(self.num) == self.num
         assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
-        if self._version != VERSION:
-            raise ValueError('Statistics version ' + self._version + ' does not match lib version')
+        if self.__version__ != __version__:
+            raise ValueError('Statistics version ' + self.__version__ + ' does not match lib version')
         if not ((self.bitrate,) == self.sum.shape == self.sum_sq.shape == self.max.shape == self.min.shape):
             raise ValueError('Statistics fields must be 1-D with length equal to bitrate')
         return True
@@ -1052,7 +1051,7 @@ class Statistics(AbstractReportData):
             'min':      np.array(self.min).flatten(),
             'num':      np.int64(self.num),
             'bitrate':  np.int64(self.bitrate),
-            'version':  self._version,
+            'version':  self.__version__,
             'class':    'Statistics'
         }
 
@@ -1069,7 +1068,7 @@ class Statistics(AbstractReportData):
     def __eq__(self, other):
         if self.bitrate != other.bitrate:
             return False
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             return False
         if type(self) != type(other):
             return False
@@ -1108,11 +1107,11 @@ class AbstractReport(ReportInterface):
 
     def __init__(self,
             bitrate         = DEFAULT_BITRATE,
-            version         = VERSION,
+            version         = __version__,
             time_intervals  = None,
             data            = None):
 
-        if version != self._version:
+        if version != self.__version__:
             raise VersionError()
 
         assert np.int64(bitrate) == bitrate, 'bitrate must be an integer'
@@ -1199,7 +1198,7 @@ class AbstractReport(ReportInterface):
     def _confirm_unionability(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Reports have different bitrates')
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             raise ValueError('Reports have different versions')
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
@@ -1221,11 +1220,11 @@ class AbstractReport(ReportInterface):
             self._data[key]._assert_self_consistent()
             if self.bitrate != self._data[key].bitrate:
                 raise ValueError('Report constituents have different bitrates')
-            if self._version != self._data[key]._version:
+            if self.__version__ != self._data[key].__version__:
                 raise ValueError('Report constituents have different versions')
         if not isinstance(self.time_intervals, TimeIntervalSet):
             raise ValueError('self.time_intervals must be an instance of TimeIntervalSet.')
-        if self._version != self.time_intervals._version:
+        if self.__version__ != self.time_intervals.__version__:
             raise ValueError('time_intervals has different version than the Report itself')
         assert np.int64(self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
@@ -1257,7 +1256,7 @@ class AbstractReport(ReportInterface):
             data[key] = self._data[key].__to_dict__()
         return {
             'bitrate':          self.bitrate,
-            'version':          self._version,
+            'version':          self.__version__,
             'time_intervals':   self.time_intervals.__to_dict__(),
             'data':             data
         }
@@ -1265,7 +1264,7 @@ class AbstractReport(ReportInterface):
     def __eq__(self, other):
         if type(self) != type(other) or set(self._data) != set(other._data):
             return False
-        if self.bitrate != other.bitrate or self._version != other._version:
+        if self.bitrate != other.bitrate or self.__version__ != other.__version__:
             return False
         if self.time_intervals != other.time_intervals:
             return False
@@ -1303,14 +1302,14 @@ class ReportSet(ReportInterface):
     def __init__(self,
             report_class_name,
             bitrate                 = DEFAULT_BITRATE,
-            version                 = VERSION,
+            version                 = __version__,
             channel_name            = "blank_report",
             time_intervals          = None,
             report                  = None,
             report_anomalies_only   = None,
             report_sans_anomalies   = None,
             missing_times           = None):
-        if version != self._version:
+        if version != self.__version__:
             raise VersionError()
 
         if type(report_class_name) is str:
@@ -1415,13 +1414,13 @@ class ReportSet(ReportInterface):
             # r._confirm_unionability(self.get_report_class()(self.bitrate))
             if self.bitrate != r.bitrate:
                 raise ValueError('key ' + r.__name__ + ' has different bitrate than this ReportSet')
-            if self._version != r._version:
+            if self.__version__ != r.__version__:
                 raise ValueError('key ' + r.__name__ + ' has different version than this ReportSet')
         for t in self.time_intervals, self.missing_times:
             if not isinstance(t, TimeIntervalSet):
                 raise ValueError('key ' + t.__name__ + ' must be instance of TimeIntervalSet')
             t._assert_self_consistent()
-            if self._version != t._version:
+            if self.__version__ != t.__version__:
                 raise ValueError('key ' + t.__name__ + ' has different version than this ReportSet')
         if self.report_anomalies_only + self.report_sans_anomalies != self.report:
             raise ValueError('whole report should be union of anomalous and nominal parts')
@@ -1440,7 +1439,7 @@ class ReportSet(ReportInterface):
             raise ValueError('instances of ReportSet must have same channel_name')
         if self.bitrate != other.bitrate:
             raise ValueError('instances of ReportSet must have same bitrate')
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             raise ValueError('instances of ReportSet must have same version')
         if self.time_intervals.intersection(other.time_intervals) == TimeIntervalSet([]):
             raise ValueError('instances of ReportSet cannot cover overlapping time intervals')
@@ -1457,7 +1456,7 @@ class ReportSet(ReportInterface):
         return type(self)(
             report_class_name       = self.report_class_name,
             bitrate                 = self.bitrate,
-            version                 = self._version,
+            version                 = self.__version__,
             channel_name            = self.channel_name,
             time_intervals          = self.time_intervals,
             report                  = self.report,
@@ -1484,7 +1483,7 @@ class ReportSet(ReportInterface):
         return {
             'report_class_name':        self.report_class_name,
             'bitrate':                  np.int64(self.bitrate),
-            'version':                  self._version,
+            'version':                  self.__version__,
             'channel_name':             self.channel_name,
             'time_intervals':           self.time_intervals.__to_dict__(),
             'report':                   self.report.__to_dict__(),
@@ -1505,7 +1504,7 @@ class ReportSet(ReportInterface):
             return False
         if self.bitrate != other.bitrate:
             return False
-        if self._version != other._version:
+        if self.__version__ != other.__version__:
             return False
         if self.channel_name != other.channel_name:
             return False

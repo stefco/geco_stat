@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-import geco_stat
+from version import __release__ as version
 
 here = path.abspath(path.dirname(__file__))
 
@@ -26,7 +26,8 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version=geco_stat.RELEASE,
+    # version=version.__release__,
+    version = version,
 
     description='Diagnostic tools for the advanced LIGO timing distribution system.',
     long_description=long_description,
@@ -83,16 +84,18 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy','h5py','matplotlib'],
+    install_requires=['matplotlib','numpy','h5py','tendo'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
-    # $ pip install -e .[dev,test]
-    # extras_require={
-    #     'dev': ['check-manifest'],
+    # $ pip install -e .[dev,docs,test]
+    extras_require={
+    # dev extras should also exist in the Makefile for robustness on old setups
+        'dev': ["pip>=1.4", "setuptools>=0.9", "wheel>=0.21", "twine", "ipython"],
+        'docs': ["sphinx", "recommonmark"],
     #     'test': ['coverage'],
-    # },
+    },
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these

@@ -28,7 +28,8 @@ python:
   - '3.5'
   - 3.5-dev
   - nightly
-  - 'pypy'
+  # pypy causing trouble, ignore it for now
+  # - 'pypy'
 
 sudo: false
 

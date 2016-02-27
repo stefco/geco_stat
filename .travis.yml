@@ -1,25 +1,38 @@
 language: python
 
+addons:
+  apt:
+    packages:
+      # generic packages
+      - gcc
+      - gfortran
+      - python-dev
+      - libblas-dev
+      - liblapack-dev
+      # depenencies
+      - python-numpy
+      - python-scipy
+
 python:
-- '2.6'
-- '2.7'
-- '3.2'
-- '3.3'
-- '3.4'
-- '3.5'
-- 3.5-dev
-- nightly
+  - '2.6'
+  - '2.7'
+  - '3.2'
+  - '3.3'
+  - '3.4'
+  - '3.5'
+  - 3.5-dev
+  - nightly
 
 sudo: false
 
 install:
-# determine OS
-- cat /etc/*release
-- uname -a
-- echo $OSTYPE
-# install requirements and module
-- pip install -r requirements.txt
-- pip install -e .
+  # determine OS
+  - cat /etc/*release
+  - uname -a
+  - echo $OSTYPE
+  # install requirements and module
+  - pip install -r requirements.txt
+  - pip install -e .
 
 script: make test
 

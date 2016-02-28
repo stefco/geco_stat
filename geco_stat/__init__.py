@@ -7,7 +7,10 @@ import datetime
 import h5py             # >=2.5.0
 import abc
 import numpy as np      # >=1.10.4
-from _version import __version__, __release__
+
+# from version import __release__ as version
+# for python3.x compatibility, ditch execfile
+exec(compile(open('geco_stat/_version.py', "rb").read(), 'geco_stat/_version.py', 'exec'))
 
 __default_bitrate__ = 16384
 

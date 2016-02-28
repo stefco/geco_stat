@@ -23,6 +23,9 @@ Packaging and Distribution using PyPI and pip
 ---------------------------------------------
 
 * `How to structure the directories in your python package`_.
+* `How to give everything in your project the same version and release numbers`_,
+  from Read The Docs documentation (via Sphinx) to the module API and the PyPI
+  distribution version.
 * `Quick and dirty intro`_ to PyPI.
 * `Comprehensive list`_ of ``list_classifiers`` used to describe your package.
 * `Official guide`_ to getting started with PyPI packaging and distribution.
@@ -33,6 +36,7 @@ Packaging and Distribution using PyPI and pip
 * `Adding`_ a ``publish`` and autoversion feature to ``setup.py``.
 
 .. _How to structure the directories in your python package: http://stackoverflow.com/questions/17457782/how-to-structure-python-packages-without-repeating-top-level-name-for-import/17530651#17530651
+.. _How to give everything in your project the same version and release numbers: https://packaging.python.org/en/latest/single_source_version/
 .. _Comprehensive list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
 .. _Quick and dirty intro: https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
 .. _Official guide: https://python-packaging.readthedocs.org/en/latest/minimal.html

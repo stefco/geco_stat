@@ -47,7 +47,7 @@ install:
 script:
   # only run the doctest in Python2.7, since other versions have trouble digesting it
   # actually don't run doctest, conflicts with mock classes set up for Read the Docs
-  # - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then make doctest; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then make doctest; fi
   # 2.6 requires unittest2 to run h5py
   - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install unittest2; fi
   - make unit-test

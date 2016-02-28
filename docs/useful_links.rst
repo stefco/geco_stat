@@ -31,9 +31,10 @@ Distribution using PyPI and pip
   variable: https://packaging.python.org/en/latest/requirements/
 * Including extra requirements for nonstandard usage:
   https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+* Adding a ``publish`` and autoversion feature to ``setup.py``: http://www.pydanny.com/python-dot-py-tricks.html
 
-Running a function from the Command Line
-----------------------------------------
+Running a Python Script from the Command Line
+---------------------------------------------
 
 * https://docs.python.org/2/tutorial/modules.html#executing-modules-as-scripts
 * http://stackoverflow.com/questions/34952745/how-can-one-enable-a-shell-command-line-argument-for-a-python-package-installed
@@ -63,15 +64,48 @@ Python
 * A very good guide to python method decorators: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
 * Detailed description of ``super()``: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
 
+Python on Travis CI:
+--------------------
+
+* Getting started with ``.travis.yml`` for python: https://docs.travis-ci.com/user/languages/python
+* Deploying to PyPI using Travis: https://docs.travis-ci.com/user/deployment/pypi
+* Fix build failures due to missing ``HDF5`` dependency (a good hint that this
+  is the problem you are facing is a missing ``hdf5.h`` header file warning in your
+  logfile): http://askubuntu.com/questions/630716/cannot-install-libhdf5-dev
+* Using ``system_site_packages`` to use the ``apt`` versions of python (NOTE:
+  you *should not* do this for any packages that need to be tested on many
+  versions of Python, since generally only one or two versions will be available
+  via ``apt``. See the next link for details.): https://groups.google.com/forum/#!topic/travis-ci/cdJajrAWcKs
+* Why ``system_site_packages`` breaks multi-version tests: https://github.com/travis-ci/travis-ci/issues/4260
+* More info on the ``system_site_packages`` option breaks multi-version tests,
+  **plus** a very good example of how to test system site package versions of
+  python *without* flagging this option, using the syntax:
+
+  ::
+
+      - "pypy"
+      - 2.7
+      - "2.7_with_system_site_packages"
+
+  (inclusion of other versions follows the same pattern): https://github.com/travis-ci/travis-ci/issues/2219#issuecomment-41804942
+* Test special requirements for each python version: http://stackoverflow.com/questions/20617600/travis-special-requirements-for-each-python-version
+
 Vim Fun
 -------
 
 * Negative regex matching: http://vim.wikia.com/wiki/Search_for_lines_not_containing_pattern_and_other_helpful_searches
 
+Python Versions
+---------------
+
+* ``execfile`` no longer exists in Python3.x; replace it with this:  http://stackoverflow.com/questions/6357361/alternative-to-execfile-in-python-3
+* ``/`` always returns a float in Python3.x; use ``//`` for integer division in
+  any version of Python: http://stackoverflow.com/questions/15173715/why-is-there-a-typeerror
+
 Misc.
 -----
 
-* How to schedule jobs on UNIX systems using `chrontab`: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
+* How to schedule jobs on UNIX systems using ``chrontab``: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
 * How to schedule larger cluster jobs using Condor: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
 * How to determine what OS you are running on: http://stackoverflow.com/questions/394230/detect-the-os-from-a-bash-script
 * http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script

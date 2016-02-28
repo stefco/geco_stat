@@ -1,0 +1,59 @@
+language: python
+
+# virtualenv:
+  # system_site_packages: true
+
+addons:
+  apt:
+    packages:
+      # generic packages
+      - gcc
+      - gfortran
+      - python-dev
+      - libblas-dev
+      - liblapack-dev
+      - libhdf5-serial-dev
+      # depenencies
+      # - python-numpy
+      - python-scipy
+      - python-h5py
+
+python:
+  - '2.6'
+  - '2.7'
+  - '2.7_with_system_site_packages'
+  - '3.2'
+  - '3.3'
+  - '3.4'
+  - '3.5'
+  - 3.5-dev
+  - nightly
+  # pypy causing trouble, ignore it for now
+  # - 'pypy'
+
+sudo: false
+
+install:
+  # determine OS
+  - cat /etc/*release
+  - uname -a
+  - echo $OSTYPE
+  # install requirements and module
+  - pip install -r requirements.txt
+  # install documentation tools
+  - pip install "sphinx" "recommonmark"
+  - pip install -e .
+
+script:
+  # only run the doctest in Python2.7, since other versions have trouble digesting it
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then make doctest; fi
+  # 2.6 requires unittest2 to run h5py
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install unittest2; fi
+  - make unit-test
+
+deploy:
+  provider: pypi
+  user:
+    secure: WZ953yU5eH7qaWQkbzkNQwvqb4whTPh89xjekABYjBvdKvMgoxsKez9PYrzYdlLIj1cj9H78/enaphJGQsI4S19z4ocTFfPpG9llNMqo/upH4q7LkyCI5V9GxzBxirmTIY6jJ+ZpVOmVPX5GuQ0I2tVfBk11enSOfHbL8Ixa0MEMZyEv0JYjss+tWFXNogM92QG8jT2QZ8YDHmcAdbX6AFzv1kTrUnl05sZ4PAjIi9GgOtqQYRXLWZ6K5L8Dbz5sv9OrCaAdMLYHZdtWnEP2LgfCn2YJw9fKJ4BA5MW6krzS791l3tIip4RnPDOUYHp3SE863EBvSmIzLh2ka1mFx4xUWBsgJJ+wtTJrbmK89/z+J9Lk01QDoX3XtGjlzVLUzEX6iuFSA+Rjz0XSoHusExdWLqn+3z9HV2uY4unhcOfJPgeEBUqtmzQdZ5pBSdhb7mW0565KdAxFh215IfggJ6ddJCRylhsJAm1675bwT6o4TY0rm5UY2oLC4lifQySPtmH1qHvs0mg/lDLzKqVD0BzaScwql3uScK80m1nO2qxY45IEdgqNIYdORDyCIcpyzN3kUsW1aVKg2d2Y93dOJ6RnUyOeR+JHN9iGdtuhHq6xDqwz0tUWSplUHI5O2G7yKH6DK3Lug13gUiF0IAG8Y+4ToUoE1e2H6Ah4ovPr9pg=
+  password:
+    secure: GlGo6A31HIVZfysmYZMDu3T9QVwySY34SAy7aTz3Wv67F/mtdZFg1k8yWQTk7+ULpyvMivDzQNvWxlkv+3eeHw7gu6s7deCK6zide2SKdxAJ+xtuIxClvEVFvJ0U42nqUwgsiZjbkCFDZwCpPxON7GKe3EX+8I/n/qiNw9fj+y7I2bf6DlQABLzSuTS0nUZ6thoDNy7H7Dz76KqWm4780ebYecafkA/SJDJ7O91kuG7MkSm2NleziK3F1q8IFqwWSHlZ+g8AIpGfyZ4U7Xy8wq+4Xk7XPGg/6dCAo6nBivwCmaRLIiUJ7ZLPG7CEJvJNHAvEirIbx9ykyMIAIEvVjLqNAdX6/BP1Saq4fZMDK+UzTFuYVzYcByNVZxt/B4XD/bZnayXJUQjUvn8mmn069r6n7w27Tw9Sjj4h0g+N0N49Qb8O/mKU9fOJ4qJSJVGVHrZIwbft8eKQoZfhC74X5+xr72og7PXOwMNmEIjTLO4FjriCXUXBXm/B4haiLAXvIsRoumZAppq3tDqCXkvno3eZoMcxRbsr3jv4/cjaaZQCQ+16MXaEKlrUfXfEq6SPLEPlWXRJIMSlctF+GiIKdsXTPprHa6BOmguLGS+ccTT81d0U0piv5FvyFTN7y45+kk5lzgfcw5UmqW4Y1QJWcwnbGvXQT0cPlDJrGZ+bHTU=

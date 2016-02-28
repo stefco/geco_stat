@@ -32,7 +32,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test doctest coverage gettext
+.PHONY: help check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -105,7 +105,7 @@ env:
 # Install some stuff required for pip packaging and development
 	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
 # Install sphinx itself
-	$(PIP) install -U "sphinx" "recommonmark"
+	$(PIP) install -U "sphinx"
 # Install required packages
 	env/bin/pip install -U "numpy" "matplotlib" "h5py" "tendo"
 	printf "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"
@@ -258,7 +258,10 @@ linkcheck: check-sphinx
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
 
-test: doctest
+test: doctest unit-test
+	printf "\nAll tests passed.\n\n"
+
+unit-test:
 	printf "\nRunning unit tests...\n\n"
 	$(PYTHON) -c "import $(MODULENAME); $(MODULENAME).run_unit_tests()"
 

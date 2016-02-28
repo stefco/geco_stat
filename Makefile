@@ -107,9 +107,9 @@ env:
 # Install a virtualenv to allow for local development and usage.
 	if ! [ -e "./env" ]; then virtualenv env; fi
 # Install some stuff required for pip packaging and development
-	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine "ipython"
-# Install sphinx itself
-	$(PIP) install -U "sphinx"
+	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine "ipython" mock
+# Install sphinx itself, plus the Read the Docs theme
+	$(PIP) install -U "sphinx" "sphinx_rtd_theme"
 # Install required packages
 	env/bin/pip install -U "numpy" "matplotlib" "h5py" "tendo"
 	@echo "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/"

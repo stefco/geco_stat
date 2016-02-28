@@ -41,10 +41,13 @@ extensions = [
 templates_path = ['_templates']
 
 # Add geco_stat to the project path
-sys.path.insert(0,os.path.abspath('../'))
+MY_PROJECT_PATH = os.path.abspath('../')
+sys.path.insert(0, MY_PROJECT_PATH)
 
-# Import version and release numbers
-from geco_stat._version import __version__, __release__
+# from version import __release__ as version
+# for python3.x compatibility, ditch execfile
+MY_VERSION_PATH = MY_PROJECT_PATH + '/geco_stat/_version.py'
+exec(compile(open(MY_VERSION_PATH, "rb").read(), MY_VERSION_PATH, 'exec'))
 print('version is ' + __version__ + ', release is ' + __release__)
 
 # The suffix(es) of source filenames.

@@ -48,27 +48,43 @@ Packaging and Distribution using PyPI and pip
 Running a Python Script from the Command Line
 ---------------------------------------------
 
-* https://docs.python.org/2/tutorial/modules.html#executing-modules-as-scripts
+* `Simple execution of a module as a script`_ (not from a package, but in the
+  current directory).
 * http://stackoverflow.com/questions/34952745/how-can-one-enable-a-shell-command-line-argument-for-a-python-package-installed
-* How to make sure that only a single instance of your code is running:
-  http://blog.tplus1.com/blog/2012/08/08/python-allow-only-one-running-instance-of-a-script/
-* A stackoverflow question on the topic with some nice alternative approaches:
-  http://stackoverflow.com/questions/380870/python-single-instance-of-program
-* Documentation on ``sys.excepthook``, used to call cleanup code right before
-  exiting when your program crashes: https://docs.python.org/2/library/sys.html
+* `How to make sure that only a single instance of your code is running`_.
+* `A stackoverflow question on the topic with some nice alternative approaches`_.
+* Documentation on ``sys.excepthook``,
+  `used to call cleanup code right before exiting when your program crashes`_.
+
+.. _Simple execution of a module as a script: https://docs.python.org/2/tutorial/modules.html#executing-modules-as-scripts
+.. _How to make sure that only a single instance of your code is running: http://blog.tplus1.com/blog/2012/08/08/python-allow-only-one-running-instance-of-a-script/
+.. _A stackoverflow question on the topic with some nice alternative approaches: http://stackoverflow.com/questions/380870/python-single-instance-of-program
+.. _used to call cleanup code right before exiting when your program crashes: https://docs.python.org/2/library/sys.html
 
 Using Read the Docs for Documentation
 -------------------------------------
 
-* https://read-the-docs.readthedocs.org/en/latest/getting_started.html
-* Astropy is a very good (and thorough) example of advanced Read The Docs
-  support in Python: https://github.com/astropy/astropy
+* `Official getting started guide`_.
+* `Astropy`_ is a very good (and thorough) example of advanced Read The Docs
+  support in Python.
+* `Official solution`_ regarding how to fix Read the Docs build failures resulting
+  from hard c dependencies (like h5py requiring HDF5).
+* `Example`_ of the above.
+* `Using the official Read the Docs Theme`_ in your homemade documentation.
+
+.. _Official solution: http://read-the-docs.readthedocs.org/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
+.. _Official getting started guide: https://read-the-docs.readthedocs.org/en/latest/getting_started.html
+.. _Astropy: https://github.com/astropy/astropy
+.. _Example: https://github.com/astropy/halotools/issues/154
+.. _Using the official Read the Docs Theme: https://github.com/snide/sphinx_rtd_theme
 
 Writing in Restructured Text (reST)
 -----------------------------------
 
-* I'm used to markdown, so this comparison of Restructured Text (reST) was very
-  helpful: http://www.unexpected-vortices.com/doc-notes/markdown-and-rest-compared.html
+* I'm used to markdown, so `this comparison`_ of Restructured Text (reST) was
+  very helpful.
+
+.. _this comparison: http://www.unexpected-vortices.com/doc-notes/markdown-and-rest-compared.html
 
 Python
 ------

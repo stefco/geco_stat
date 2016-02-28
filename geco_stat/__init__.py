@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys
 import types
 import bisect
@@ -8,11 +10,11 @@ import h5py             # >=2.5.0
 import abc
 import numpy as np      # >=1.10.4
 
-# import the version numbers
+# from version import __release__ as version
 # for python3.x compatibility, ditch execfile
-exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'))
+exec(compile(open('geco_stat/_version.py', "rb").read(), 'geco_stat/_version.py', 'exec'))
 
-DEFAULT_BITRATE = 16384
+__default_bitrate__ = 16384
 
 class VersionError(Exception):
     """
@@ -34,7 +36,7 @@ class Timeseries(np.ndarray):
     """
 
     @classmethod
-    def from_time_and_channel_name(cls, channel_name, time_interval, bitrate=DEFAULT_BITRATE):
+    def from_time_and_channel_name(cls, channel_name, time_interval, bitrate=__default_bitrate__):
         """
         Load a timeseries using this channel_name and time_interval.
 
@@ -45,7 +47,7 @@ class Timeseries(np.ndarray):
         return cls.from_frame_file(channel_name, frame_path, time_interval, bitrate)
 
     @classmethod
-    def from_frame_file(cls, channel_name, path, time_intervals, bitrate=DEFAULT_BITRATE):
+    def from_frame_file(cls, channel_name, path, time_intervals, bitrate=__default_bitrate__):
         """
         Load channel from file path to array.
 
@@ -815,7 +817,7 @@ class Histogram(AbstractReportData):
             hist            = None,
             hist_range      = (-1e3, 1e3),
             hist_num_bins   = 256,
-            bitrate         = DEFAULT_BITRATE,
+            bitrate         = __default_bitrate__,
             version         = __version__):
         """
         Initialize an instance of the class. All properties have default
@@ -945,7 +947,7 @@ class Statistics(AbstractReportData):
             max             = None,
             min             = None,
             num             = 0,
-            bitrate         = DEFAULT_BITRATE,
+            bitrate         = __default_bitrate__,
             version         = __version__):
         """
         All properties have default values corresponding to an empty statistics
@@ -1094,7 +1096,7 @@ class AbstractReport(ReportInterface):
     __metaclass__  = abc.ABCMeta
 
     def __init__(self,
-            bitrate         = DEFAULT_BITRATE,
+            bitrate         = __default_bitrate__,
             version         = __version__,
             time_intervals  = None,
             data            = None):
@@ -1120,7 +1122,7 @@ class AbstractReport(ReportInterface):
 
     @classmethod
     @abc.abstractmethod
-    def __report_data_prototype__(cls, bitrate=DEFAULT_BITRATE):
+    def __report_data_prototype__(cls, bitrate=__default_bitrate__):
         """
         MUST BE A CLASSMETHOD.
 
@@ -1137,7 +1139,7 @@ class AbstractReport(ReportInterface):
         --------
 
         @classmethod
-        def __report_data_prototype__(cls, bitrate=DEFAULT_BITRATE)
+        def __report_data_prototype__(cls, bitrate=__default_bitrate__)
             data = {
                 'histogram': Histogram(bitrate=bitrate),
                 'statistics': Statistics(bitrate=bitrate)
@@ -1158,7 +1160,7 @@ class AbstractReport(ReportInterface):
         the ReportSet.
         """
 
-    def fold_in_timeseries(self, timeseries, time_intervals, bitrate=DEFAULT_BITRATE):
+    def fold_in_timeseries(self, timeseries, time_intervals, bitrate=__default_bitrate__):
         """
         Return a new report containing the current report's data along with
         data gleaned from the timeseries provided as an argument folded in.
@@ -1289,7 +1291,7 @@ class ReportSet(ReportInterface):
     # TODO Add notes, full intended time, current work block, and is_finished method
     def __init__(self,
             report_class_name,
-            bitrate                 = DEFAULT_BITRATE,
+            bitrate                 = __default_bitrate__,
             version                 = __version__,
             channel_name            = "blank_report",
             time_intervals          = None,
@@ -1350,7 +1352,7 @@ class ReportSet(ReportInterface):
 
     @staticmethod
     def from_time_and_channel_name(
-            report_class_name, channel_name, time_intervals, bitrate=DEFAULT_BITRATE):
+            report_class_name, channel_name, time_intervals, bitrate=__default_bitrate__):
         """
         Each subclass of ReportSet should have its own well-defined
         constructor that rejects initialization data that would lead to an
@@ -1572,3 +1574,4 @@ def clean_up():
     """
     if os.path.exists('geco_statistics_test_hdf5_dict_example.hdf5'):
         os.remove('geco_statistics_test_hdf5_dict_example.hdf5')
+

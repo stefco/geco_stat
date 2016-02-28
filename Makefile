@@ -32,18 +32,23 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
+.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
-	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  env        to create a virtualenv for development"
+	@echo "Please use \`make <target>\` where <target> is one of"
 	@echo "  check      to check dependencies"
+	@echo "  env        to create a virtualenv for development"
+	@echo "  clean      to uninstall pkg, remove generated files, but keep env folder"
+	@echo "  distclean  to uninstall pkg, remove generated files and the env folder"
+	@echo "  install    to clean, build, and install editable version of package with pip"
+	@echo "  uninstall  to uninstall editable package without cleaning this directory"
+	@echo "  test       to run all doctests as well as unit tests"
+	@echo "  unit-test  to run all unit-tests"
+	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  pypi       to build and upload packages to PyPI all at once"
 	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
 	@echo "  html       to make standalone HTML files"
-	@echo "  clean      to remove generated files, but keep the env folder"
-	@echo "  distclean  to remove generated files as well as the env folder"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
 	@echo "  pickle     to make pickle files"
@@ -65,13 +70,11 @@ help:
 	@echo "  xml        to make Docutils-native XML files"
 	@echo "  pseudoxml  to make pseudoxml-XML files for display purposes"
 	@echo "  linkcheck  to check all external links for integrity"
-	@echo "  test       to run all doctests as well as unit tests"
-	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
 # User-friendly check for all dependencies.
 check: check-env check-twine check-sphinx
-	printf "\nDependency checks passed!\n"
+	@echo "\nDependency checks passed!\n"
 
 # User-friendly check for twine. indentation puts it in the test proper... v confusing...
 check-twine:
@@ -91,42 +94,63 @@ ifndef VIR_ENV_PRE
 	$(error 'VIR_ENV_PRE is undefined; this means you are not working in a virtual environment and do not have one installed in this directory. Run "make env" to install a virtual environment using python virtualenv and follow instructions to activate it.')
 else
 ifdef VIRTUAL_ENV
-	printf "\nvirtual environment ACTIVE, VIRTUAL_ENV is set.\n\nRun\n\n\tdeactivate\n\nto deactivate.\n\n"
+	@echo "\nvirtual environment ACTIVE, VIRTUAL_ENV is set.\n\nRun\n\n\tdeactivate\n\nto deactivate.\n\n"
 else
-	printf "\nvirtual environment INACTIVE, VIRTUAL_ENV is not set.\n\nRun\n\n\tsource env/bin/activate\n\nto activate.\n\n"
+	@echo "\nvirtual environment INACTIVE, VIRTUAL_ENV is not set.\n\nIf no virtual environment is installed, run\n\n\tmake env\n\nto install it. If it is installed, run\n\n\tsource env/bin/activate\n\nto activate.\n\n"
 endif
-	printf "environment used by make: $(VIR_ENV_PRE) \n"
+	@echo "environment used by make:  $(VIR_ENV_PRE)"
+	@echo "present working directory: `pwd -P`"
 endif
 
 env:
-	printf "\nConfiguring a virtual environment for python...\n\n"
+	@echo "\nConfiguring a virtual environment for python...\n"
 # Install a virtualenv to allow for local development and usage.
 	if ! [ -e "./env" ]; then virtualenv env; fi
 # Install some stuff required for pip packaging and development
-	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine
+	$(PIP) install -U "pip>=1.4" "setuptools>=0.9" "wheel>=0.21" twine "ipython"
 # Install sphinx itself
 	$(PIP) install -U "sphinx"
 # Install required packages
 	env/bin/pip install -U "numpy" "matplotlib" "h5py" "tendo"
-	printf "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/\n"
+	@echo "\nDone setting up! To use the virtual environment interactively, run\n\n\tsource env/bin/activate\n\nto start working in this virtual environment, and run\n\n\tdeactivate\n\nwhen finished to return to your normal setup.\n\nFor nice documentation on virtualenv, visit:\nhttps://www.dabapps.com/blog/introduction-to-pip-and-virtualenv-python/"
 
-clean:
-# Delete autogenerated sphinx files
+clean: uninstall
+	@echo "Delete autogenerated sphinx files"
 	rm -rf $(BUILDDIR)
-	rm -rf _templates
-	rm -rf _static
-# Delete files created during PyPI build
+	@echo "Delete files created during PyPI build"
 	rm -rf $(PYPIBUILDDIR)
 	rm -rf $(PYPIDISTDIR)
 	rm -rf *egg-info
-# Delete autogenerated .pyc files
+	@echo "Delete autogenerated .pyc files"
 	rm -rf *.pyc
+	rm -rf __pycache__
+	rm -rf */__pycache__
+	rm -rf */*.pyc
 
 distclean: clean
 # Delete virtualenv
 	echo "Deleting virtualenv..."
 	rm -rf env
-	printf "\nIf you were in a virtualenv, run deactivate; it will no longer work\n\n"
+	@echo "\nIf you were in a virtualenv, run deactivate; it will no longer work\n"
+
+install: check-env clean uninstall build
+	pip install -e .
+	@echo "\nSuccessfully installed `pip list | tr - _ | sed -n '/^$(MODULENAME) .*/p'`\n"
+	
+uninstall: check-env
+	pip uninstall --yes $(MODULENAME) 2>&1 || printf "$(MODULENAME) not installed, moving on.\n"
+
+test: doctest unit-test
+	@echo "\nAll tests passed.\n"
+
+unit-test:
+	@echo "\nRunning unit tests...\n"
+	$(PYTHON) -c "import $(MODULENAME); $(MODULENAME).run_unit_tests()"
+
+doctest: check-sphinx
+	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
+	@echo "Testing of doctests in the sources finished, look at the " \
+	      "results in $(BUILDDIR)/doctest/output.txt."
 
 pypi: build upload
 
@@ -182,7 +206,7 @@ applehelp: check-sphinx
 	$(SPHINXBUILD) -b applehelp $(ALLSPHINXOPTS) $(BUILDDIR)/applehelp
 	@echo
 	@echo "Build finished. The help book is in $(BUILDDIR)/applehelp."
-	@echo "N.B. You won't be able to view it unless you put it in" \
+	@echo "N.B. You will not be able to view it unless you put it in" \
 	      "~/Library/Documentation/Help or install it in your application" \
 	      "bundle."
 
@@ -204,8 +228,8 @@ latex: check-sphinx
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
-	@echo "Run \`make' in that directory to run these through (pdf)latex" \
-	      "(use \`make latexpdf' here to do that automatically)."
+	@echo "Run \`make`\ in that directory to run these through (pdf)latex" \
+	      "(use \`make latexpdf`\ here to do that automatically)."
 
 latexpdf: check-sphinx
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
@@ -233,8 +257,8 @@ texinfo: check-sphinx
 	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
 	@echo
 	@echo "Build finished. The Texinfo files are in $(BUILDDIR)/texinfo."
-	@echo "Run \`make' in that directory to run these through makeinfo" \
-	      "(use \`make info' here to do that automatically)."
+	@echo "Run \`make`\ in that directory to run these through makeinfo" \
+	      "(use \`make info`\ here to do that automatically)."
 
 info: check-sphinx
 	$(SPHINXBUILD) -b texinfo $(ALLSPHINXOPTS) $(BUILDDIR)/texinfo
@@ -257,18 +281,6 @@ linkcheck: check-sphinx
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
-
-test: doctest unit-test
-	printf "\nAll tests passed.\n\n"
-
-unit-test:
-	printf "\nRunning unit tests...\n\n"
-	$(PYTHON) -c "import $(MODULENAME); $(MODULENAME).run_unit_tests()"
-
-doctest: check-sphinx
-	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(BUILDDIR)/doctest/output.txt."
 
 coverage: check-sphinx
 	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) $(BUILDDIR)/coverage

@@ -14,7 +14,7 @@ from os import path
 
 # from version import __release__ as version
 # for python3.x compatibility, ditch execfile
-exec(compile(open('version.py', "rb").read(), 'version.py', 'exec'))
+exec(compile(open('geco_stat/_version.py', "rb").read(), 'geco_stat/_version.py', 'exec'))
 
 here = path.abspath(path.dirname(__file__))
 
@@ -71,15 +71,16 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='lsc ligo geco columbia timing diagnostic gravitational waves frame',
+    keywords='lsc ligo geco columbia timing diagnostic gravitational waves frame file',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     # packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=['geco_stat'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
-    py_modules=["geco_stat"],
+    # py_modules=["geco_stat"],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's

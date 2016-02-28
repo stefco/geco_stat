@@ -19,19 +19,27 @@ Documentation and Testing using Sphinx
 * http://www.sphinx-doc.org/en/stable/ext/autosummary.html
 * http://www.sphinx-doc.org/en/stable/ext/math.html
 
-Distribution using PyPI and pip
--------------------------------
+Packaging and Distribution using PyPI and pip
+---------------------------------------------
 
-* https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
-* https://pypi.python.org/pypi?%3Aaction=list_classifiers
-* https://python-packaging.readthedocs.org/en/latest/minimal.html
-* Setting up a ``requirements.txt`` file that automatically gets required
-  dependencies from the ``setup.py`` file: https://caremad.io/2013/07/setup-vs-requirement/
-* A little bit more discussion of the ``setup.py`` ``install_requires``
-  variable: https://packaging.python.org/en/latest/requirements/
-* Including extra requirements for nonstandard usage:
-  https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-* Adding a ``publish`` and autoversion feature to ``setup.py``: http://www.pydanny.com/python-dot-py-tricks.html
+* `How to structure the directories in your python package`_.
+* `Quick and dirty intro`_ to PyPI.
+* `Comprehensive list`_ of ``list_classifiers`` used to describe your package.
+* `Official guide`_ to getting started with PyPI packaging and distribution.
+* `Setting up`_ a ``requirements.txt`` file that automatically gets required
+  dependencies from the ``setup.py`` file.
+* `More discussion`_ of the ``setup.py`` ``install_requires`` variable.
+* `Including extra requirements for nonstandard usage`_.
+* `Adding`_ a ``publish`` and autoversion feature to ``setup.py``.
+
+.. _How to structure the directories in your python package: http://stackoverflow.com/questions/17457782/how-to-structure-python-packages-without-repeating-top-level-name-for-import/17530651#17530651
+.. _Comprehensive list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+.. _Quick and dirty intro: https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/
+.. _Official guide: https://python-packaging.readthedocs.org/en/latest/minimal.html
+.. _Setting up: https://caremad.io/2013/07/setup-vs-requirement/
+.. _More discussion: https://packaging.python.org/en/latest/requirements/
+.. _Including extra requirements for nonstandard usage: https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+.. _Adding: http://www.pydanny.com/python-dot-py-tricks.html
 
 Running a Python Script from the Command Line
 ---------------------------------------------

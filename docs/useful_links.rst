@@ -43,13 +43,14 @@ Running a Python Script from the Command Line
 
 * `Simple execution of a module as a script`_ (not from a package, but in the
   current directory).
-* http://stackoverflow.com/questions/34952745/how-can-one-enable-a-shell-command-line-argument-for-a-python-package-installed
+* Quick explanation of `how to use entry points`_ to accomplish this in a package.
 * `How to make sure that only a single instance of your code is running`_.
 * `A stackoverflow question on the topic with some nice alternative approaches`_.
 * Documentation on ``sys.excepthook``,
   `used to call cleanup code right before exiting when your program crashes`_.
 
 .. _Simple execution of a module as a script: https://docs.python.org/2/tutorial/modules.html#executing-modules-as-scripts
+.. _how to use entry points: http://stackoverflow.com/questions/34952745/how-can-one-enable-a-shell-command-line-argument-for-a-python-package-installed
 .. _How to make sure that only a single instance of your code is running: http://blog.tplus1.com/blog/2012/08/08/python-allow-only-one-running-instance-of-a-script/
 .. _A stackoverflow question on the topic with some nice alternative approaches: http://stackoverflow.com/questions/380870/python-single-instance-of-program
 .. _used to call cleanup code right before exiting when your program crashes: https://docs.python.org/2/library/sys.html

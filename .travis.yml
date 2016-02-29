@@ -51,6 +51,11 @@ script:
   # 2.6 requires unittest2 to run h5py
   - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install unittest2; fi
   - make unit-test
+  # make sure everthing works in a different directory
+  - mkdir foo
+  - cd foo
+  - python -c "import geco_stat as g; g.run_unit_tests()"
+  - cd ..
 
 deploy:
   provider: pypi

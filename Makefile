@@ -32,7 +32,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean version increl decrel pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
+.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean version increl decrel zerorel oldver incver decver pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -45,9 +45,13 @@ help:
 	@echo "  test       to run all doctests as well as unit tests"
 	@echo "  unit-test  to run all unit-tests"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
-	@echo "  doctest    to show current version and release numbers
-	@echo "  increl     to increment release number, e.g. 0.0.1 -> 0.0.2
-	@echo "  decrel     to decrement release number, e.g. 0.0.2 -> 0.0.1
+	@echo "  version    to show current version and release numbers"
+	@echo "  increl     to increment release number, e.g. 0.0.1 -> 0.0.2"
+	@echo "  decrel     to decrement release number, e.g. 0.0.2 -> 0.0.1"
+	@echo "  zerorel    to set fix release number to 0, e.g. 0.0.5 -> 0.0.0"
+	@echo "  oldver     to restore old version info from last commit"
+	@echo "  incver     to increment version number, e.g. 0.1.0 -> 0.2.0"
+	@echo "  decver     to decrement version number, e.g. 0.2.0 -> 0.1.0"
 	@echo "  pypi       to build and upload packages to PyPI all at once"
 	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
@@ -156,7 +160,7 @@ doctest: check-sphinx
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 version:
-	@echo "\n current version and release:\n\n`cat $(MODULENAME)/_version.py`\n"
+	@echo "\ncurrent version and release:\n\n`cat $(MODULENAME)/_version.py`\n"
 
 increl: version
 	@echo "\nincrementing python release...\n"
@@ -169,6 +173,32 @@ decrel: version
 	@echo "\ndecrementing python release...\n"
 	cp $(MODULENAME)/_version.py _version_backup.py
 	printf "`cat _version_backup.py`\nr = eval('[' + __release__.replace('.',',') + ']')\nr[2] -= 1\nprint('__version__ = \\\'' + __version__ + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
+	rm _version_backup.py
+	@echo "\nsuccess."
+
+zerorel: version
+	@echo "\nsetting python fix release to zero...\n"
+	cp $(MODULENAME)/_version.py _version_backup.py
+	printf "`cat _version_backup.py`\nr = eval('[' + __release__.replace('.',',') + ']')\nr[2] = 0\nprint('__version__ = \\\'' + __version__ + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
+	rm _version_backup.py
+	@echo "\nsuccess."
+
+oldver: version
+	@echo "\nrestoring old version info...\n"
+	git checkout HEAD -- $(MODULENAME)/_version.py
+	@echo "\nrestored version and release:\n\n`cat $(MODULENAME)/_version.py`\n"
+
+incver: version
+	@echo "\nincrementing python version...\n"
+	cp $(MODULENAME)/_version.py _version_backup.py
+	printf "`cat _version_backup.py`\nv = eval('[' + __version__.replace('.',',') + ']')\nr = eval('[' + __release__.replace('.',',') + ']')\nv[1] += 1\nr[1] += 1\nprint('__version__ = \\\'' + '.'.join([str(x) for x in v]) + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
+	rm _version_backup.py
+	@echo "\nsuccess."
+
+decver: version
+	@echo "\ndecrementing python version...\n"
+	cp $(MODULENAME)/_version.py _version_backup.py
+	printf "`cat _version_backup.py`\nv = eval('[' + __version__.replace('.',',') + ']')\nr = eval('[' + __release__.replace('.',',') + ']')\nv[1] -= 1\nr[1] -= 1\nprint('__version__ = \\\'' + '.'.join([str(x) for x in v]) + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
 	rm _version_backup.py
 	@echo "\nsuccess."
 

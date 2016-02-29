@@ -7,17 +7,10 @@ deploying this package.
 Anomaly and Outlier Detection
 -----------------------------
 
-* http://scikit-learn.org/stable/modules/outlier_detection.html
+* Some strategies for `outlier and anomaly detection`_ (and a good
+  explanation of the differences between the two).
 
-Documentation and Testing using Sphinx
---------------------------------------
-
-* http://thomas-cokelaer.info/tutorials/sphinx/docstring_python.html
-* https://docs.python.org/2/library/doctest.html
-* http://www.sphinx-doc.org/en/stable/extensions.html
-* http://www.sphinx-doc.org/en/stable/ext/doctest.html
-* http://www.sphinx-doc.org/en/stable/ext/autosummary.html
-* http://www.sphinx-doc.org/en/stable/ext/math.html
+.. _outlier and anomaly detection: http://scikit-learn.org/stable/modules/outlier_detection.html
 
 Packaging and Distribution using PyPI and pip
 ---------------------------------------------
@@ -89,23 +82,27 @@ Writing in Restructured Text (reST)
 Python
 ------
 
-* A very good guide to python method decorators: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
-* Detailed description of ``super()``: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
+* A `very good guide`_ to python method decorators.
+* `Detailed description`_ of ``super()``.
+
+.. _very good guide: https://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods
+.. _Detailed description: https://rhettinger.wordpress.com/2011/05/26/super-considered-super/
 
 Python on Travis CI:
 --------------------
 
-* Getting started with ``.travis.yml`` for python: https://docs.travis-ci.com/user/languages/python
-* Deploying to PyPI using Travis: https://docs.travis-ci.com/user/deployment/pypi
-* Fix build failures due to missing ``HDF5`` dependency (a good hint that this
+* `Getting started`_ with ``.travis.yml`` for python.
+* `Deploying to PyPI`_ using Travis.
+* Fix build failures due to `missing HDF5 dependency`_ (a good hint that this
   is the problem you are facing is a missing ``hdf5.h`` header file warning in your
-  logfile): http://askubuntu.com/questions/630716/cannot-install-libhdf5-dev
-* Using ``system_site_packages`` to use the ``apt`` versions of python (NOTE:
+  logfile).
+* Using `system site packages`_ (the ``system_site_packages`` option in
+  ``.travis.yml``) to use the ``apt`` versions of python (NOTE:
   you *should not* do this for any packages that need to be tested on many
   versions of Python, since generally only one or two versions will be available
-  via ``apt``. See the next link for details.): https://groups.google.com/forum/#!topic/travis-ci/cdJajrAWcKs
-* Why ``system_site_packages`` breaks multi-version tests: https://github.com/travis-ci/travis-ci/issues/4260
-* More info on the ``system_site_packages`` option breaks multi-version tests,
+  via ``apt``. See the next link for details.).
+* Why ``system_site_packages`` `breaks multi-version tests`_.
+* `More info`_ on the ``system_site_packages`` option breaks multi-version tests,
   **plus** a very good example of how to test system site package versions of
   python *without* flagging this option, using the syntax:
 
@@ -115,26 +112,60 @@ Python on Travis CI:
       - 2.7
       - "2.7_with_system_site_packages"
 
-  (inclusion of other versions follows the same pattern): https://github.com/travis-ci/travis-ci/issues/2219#issuecomment-41804942
-* Test special requirements for each python version: http://stackoverflow.com/questions/20617600/travis-special-requirements-for-each-python-version
+  (inclusion of other versions follows the same pattern).
+* Test `special requirements`_ for each python version.
+
+.. _Getting started: https://docs.travis-ci.com/user/languages/python
+.. _Deploying to PyPI: https://docs.travis-ci.com/user/deployment/pypi
+.. _missing HDF5 dependency: http://askubuntu.com/questions/630716/cannot-install-libhdf5-dev
+.. _system site packages: https://groups.google.com/forum/#!topic/travis-ci/cdJajrAWcKs
+.. _breaks multi-version tests: https://github.com/travis-ci/travis-ci/issues/4260
+.. _More info: https://github.com/travis-ci/travis-ci/issues/2219#issuecomment-41804942
+.. _special requirements: http://stackoverflow.com/questions/20617600/travis-special-requirements-for-each-python-version
 
 Vim Fun
 -------
 
-* Negative regex matching: http://vim.wikia.com/wiki/Search_for_lines_not_containing_pattern_and_other_helpful_searches
+* `Negative regex matching`_.
+* `Running python code from within vim`_.
+* `Saving vim macros`_.
+* `Put backspace in a vim macro`_ (make sure to use double-quotes).
+
+.. _Negative regex matching: http://vim.wikia.com/wiki/Search_for_lines_not_containing_pattern_and_other_helpful_searches
+.. _Running python code from within vim: http://stackoverflow.com/questions/18948491/running-python-code-in-vim
+.. _Saving vim macros: http://stackoverflow.com/questions/2024443/saving-vim-macros
+.. _Put backspace in a vim macro: http://stackoverflow.com/questions/27578758/vim-macro-with-backspace
 
 Python Versions
 ---------------
 
-* ``execfile`` no longer exists in Python3.x; replace it with this:  http://stackoverflow.com/questions/6357361/alternative-to-execfile-in-python-3
-* ``/`` always returns a float in Python3.x; use ``//`` for integer division in
-  any version of Python: http://stackoverflow.com/questions/15173715/why-is-there-a-typeerror
+* ``execfile`` no longer exists in Python3.x; `replace it with this`_.
+* ``/`` always returns a float in Python3.x; use ``//`` for `integer division`_ in
+  any version of Python.
+
+.. _integer division: http://stackoverflow.com/questions/15173715/why-is-there-a-typeerror
+.. _replace it with this: http://stackoverflow.com/questions/6357361/alternative-to-execfile-in-python-3
+
+Documentation and Testing using Sphinx
+--------------------------------------
+
+* http://thomas-cokelaer.info/tutorials/sphinx/docstring_python.html
+* https://docs.python.org/2/library/doctest.html
+* http://www.sphinx-doc.org/en/stable/extensions.html
+* http://www.sphinx-doc.org/en/stable/ext/doctest.html
+* http://www.sphinx-doc.org/en/stable/ext/autosummary.html
+* http://www.sphinx-doc.org/en/stable/ext/math.html
 
 Misc.
 -----
 
-* How to schedule jobs on UNIX systems using ``chrontab``: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
-* How to schedule larger cluster jobs using Condor: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
-* How to determine what OS you are running on: http://stackoverflow.com/questions/394230/detect-the-os-from-a-bash-script
-* http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
+* How to `schedule jobs`_ on UNIX systems using ``chrontab``.
+* How to `schedule larger cluster jobs`_ using Condor.
+* How to `determine what OS you are running on`_.
+* How to `check if a program or command exists`_ from within a bash script.
+
+.. _schedule jobs: http://kvz.io/blog/2007/07/29/schedule-tasks-on-linux-using-crontab/
+.. _schedule larger cluster jobs: https://www.lsc-group.phys.uwm.edu/lscdatagrid/doc/condorview.html
+.. _determine what OS you are running on: http://stackoverflow.com/questions/394230/detect-the-os-from-a-bash-script
+.. _check if a program or command exists: http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script
 

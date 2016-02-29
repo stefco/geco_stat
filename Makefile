@@ -32,7 +32,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
+.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean version increl decrel pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -45,6 +45,9 @@ help:
 	@echo "  test       to run all doctests as well as unit tests"
 	@echo "  unit-test  to run all unit-tests"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
+	@echo "  doctest    to show current version and release numbers
+	@echo "  increl     to increment release number, e.g. 0.0.1 -> 0.0.2
+	@echo "  decrel     to decrement release number, e.g. 0.0.2 -> 0.0.1
 	@echo "  pypi       to build and upload packages to PyPI all at once"
 	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
@@ -151,6 +154,23 @@ doctest: check-sphinx
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+version:
+	@echo "\n current version and release:\n\n`cat $(MODULENAME)/_version.py`\n"
+
+increl: version
+	@echo "\nincrementing python release...\n"
+	cp $(MODULENAME)/_version.py _version_backup.py
+	printf "`cat _version_backup.py`\nr = eval('[' + __release__.replace('.',',') + ']')\nr[2] += 1\nprint('__version__ = \\\'' + __version__ + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
+	rm _version_backup.py
+	@echo "\nsuccess."
+
+decrel: version
+	@echo "\ndecrementing python release...\n"
+	cp $(MODULENAME)/_version.py _version_backup.py
+	printf "`cat _version_backup.py`\nr = eval('[' + __release__.replace('.',',') + ']')\nr[2] -= 1\nprint('__version__ = \\\'' + __version__ + '\\\'\\\n__release__ = \\\'' + '.'.join([str(x) for x in r]) + '\\\'')\n" | python | tee $(MODULENAME)/_version.py
+	rm _version_backup.py
+	@echo "\nsuccess."
 
 pypi: build upload
 

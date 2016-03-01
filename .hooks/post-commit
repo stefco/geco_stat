@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# 2016-03-01 If python version is updated, tag this commit. --stefco
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-commit".
+
+if git rev-parse --verify HEAD~1 >/dev/null 2>&1
+then
+	against=HEAD~1
+else
+	# Initial commit: diff against an empty tree object
+	against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	current=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	current=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+PRJ="geco_stat"
+if ! [ -e "$PRJ/_version.py" ]; then
+    echo "no $PRJ/_version.py file found."
+elif [ "`git show $against:$PRJ/_version.py`" == "`git show $current:$PRJ/_version.py`" ]; then
+    echo "version info unchanged in $PRJ/_version.py."
+else
+    echo "version info updated in $PRJ/_version.py, tagging this commit."
+    version=$( printf "`cat geco_stat/_version.py`\nprint('v' + __release__)\n" | python )
+    git tag -a "$version" -m "update to version $version"
+fi
+

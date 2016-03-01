@@ -32,7 +32,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean version increl decrel zerorel oldver incver decver pypi build upload env html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
+.PHONY: help install uninstall check check-twine check-sphinx check-env clean distclean version increl decrel zerorel oldver incver decver pypi build upload env hooks html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -55,6 +55,7 @@ help:
 	@echo "  pypi       to build and upload packages to PyPI all at once"
 	@echo "  build      to build packages for upload to PyPI"
 	@echo "  upload     to upload finished PyPI packages"
+	@echo "  hooks      to symlink git hooks to the .git/hooks directory"
 	@echo "  html       to make standalone HTML files"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
@@ -211,6 +212,9 @@ build: check-env
 
 upload: check-env check-twine
 	$(TWINE) upload $(PYPIDISTDIR)/*
+
+hooks:
+	ln -s -f ../../hooks/post-commit .git/hooks/post-commit
 
 html: check-sphinx
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

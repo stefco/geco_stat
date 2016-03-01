@@ -214,7 +214,7 @@ upload: check-env check-twine
 	$(TWINE) upload $(PYPIDISTDIR)/*
 
 hooks:
-	ln -s -f ../../hooks/post-commit .git/hooks/post-commit
+	ln -s -f ../../.hooks/post-commit .git/hooks/post-commit
 
 html: check-sphinx
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

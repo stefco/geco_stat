@@ -57,6 +57,10 @@ script:
   - python -c "import geco_stat as g; g.run_unit_tests()"
   - cd ..
 
+cache:
+  - apt
+  - pip
+
 deploy:
   provider: pypi
   user:

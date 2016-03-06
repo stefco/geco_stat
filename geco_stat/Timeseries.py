@@ -5,6 +5,7 @@ import subprocess
 import numpy as np      # >=1.10.4
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Exceptions import MissingChannelDataException
+from geco_stat.TimeIntervalSet import TimeIntervalSet
 
 class Timeseries(np.ndarray):
     """

@@ -292,13 +292,12 @@ class Statistics(AbstractReportData):
 
     def from_timeseries(self, timeseries):
         self_type = type(self)
-        super(self_type, self).from_timeseries()
         return self_type(
                 sum     = timeseries.sum(0),
                 sum_sq  = np.power(timeseries, 2).sum(0),
                 max     = np.max(timeseries, 0),
                 min     = np.min(timeseries, 0),
-                num     = np.shape[0],
+                num     = timeseries.shape[0],
                 bitrate = timeseries.bitrate)
 
     def __eq__(self, other):
@@ -614,7 +613,7 @@ class ReportSet(ReportInterface):
         try:
             timeseries = Timeseries.from_time_and_channel_name(channel_name, time_intervals)
             missing_times = TimeIntervalSet()
-            # TODO FIX: This line is broken. This is a staticmethod, no self.
+            # FIXME: This line is broken. This is a staticmethod, no self.
             report = report_class.from_timeseries(self, timeseries)
 
             if report_class.is_anomalous(timeseries):
@@ -631,7 +630,7 @@ class ReportSet(ReportInterface):
             report_anomalies_only = report
             report_sans_anomalies = report
 
-        # TODO FIX: This line is ALSO broken. This is a staticmethod, no cls.
+        # FIXME: This line is ALSO broken. This is a staticmethod, no cls.
         return cls(
             report_class_name       = report_class_name,
             bitrate                 = bitrate,

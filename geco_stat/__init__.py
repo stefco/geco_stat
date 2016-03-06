@@ -35,13 +35,15 @@ class PlottableInterface(ReportInterface):
     @abc.abstractmethod
     def summary(self):
         """
-        Create some sort of verbose, human-readable text summary for the information
-        content of this object. Should return a string.
+        Create some sort of verbose, human-readable text summary for the
+        information content of this object. Should return a string.
         """
 
 # TODO: Make PlottableInterface
 class AbstractReportData(ReportInterface):
-    "Abstract class for aggregated data. All instances must implement interface."
+    """
+    Abstract class for aggregated data. All instances must implement interface.
+    """
     __metaclass__  = abc.ABCMeta
 
 # TODO: Make PlottableInterface
@@ -75,18 +77,21 @@ class Histogram(AbstractReportData):
         if version != self.__version__:
             raise VersionException()
         elif hist_range[0] >= hist_range[1]:
-            raise ValueError('minimum value of histogram bin range must be smaller than max')
+            raise ValueError('min val of hist bin range must be less than max')
 
         # set values to "empty" histograms
-        if hist == None:
+        if hist is None:
             hist = np.zeros((hist_num_bins, bitrate), dtype=np.int64)
 
-        assert np.int64(hist_num_bins) == hist_num_bins, 'hist_num_bins must be an integer'
+        assert np.int64(hist_num_bins) == hist_num_bins, \
+            'hist_num_bins must be an integer'
         self.hist_num_bins  = np.int64(hist_num_bins)
         assert len(hist_range) == 2
         self.hist_range     = np.array(hist_range)
-        self.hist           = np.array(hist, copy=True) # Make sure this is a copy of the data
-        self.hist_bins      = np.linspace(hist_range[0], hist_range[1], hist_num_bins+1)
+        # Make sure this is a copy of the data
+        self.hist           = np.array(hist, copy=True)
+        self.hist_bins      = np.linspace(hist_range[0], hist_range[1],
+            hist_num_bins+1)
         self.t_ticks        = np.linspace(0,1,bitrate+1)
         assert np.int64(bitrate) == bitrate, 'bitrate must be an integer'
         self.bitrate        = np.int64(bitrate)
@@ -109,7 +114,8 @@ class Histogram(AbstractReportData):
         )
 
     def _confirm_unionability(self, other):
-        if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
+        if (self.hist_range != other.hist_range or 
+                self.hist_num_bins != other.hist_num_bins):
             raise ValueError('Histograms have different bin edges')
         if self.bitrate != other.bitrate:
             raise ValueError('Histograms have different bitrates')

@@ -32,7 +32,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(C
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help check check-twine check-sphinx check-env clean distclean install uninstall pep version increl decrel zerorel oldver incver decver pypi build upload env hooks html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
+.PHONY: help check check-twine check-sphinx check-env clean distclean install uninstall gamut pep version increl decrel zerorel oldver incver decver pypi build upload env hooks html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck test unit-test doctest coverage gettext
 
 help:
 	@echo "Please use \`make <target>\` where <target> is one of"
@@ -42,6 +42,7 @@ help:
 	@echo "  distclean  to uninstall pkg, remove generated files and the env folder"
 	@echo "  install    to clean, build, and install editable version of package with pip"
 	@echo "  uninstall  to uninstall editable package without cleaning this directory"
+	@echo "  gamut      to clean, install, and test"
 	@echo "  pep        to format python code according to (most) pep8 conventions"
 	@echo "  test       to run all doctests as well as unit tests"
 	@echo "  unit-test  to run all unit-tests"
@@ -148,6 +149,9 @@ install: check-env clean uninstall build
 	
 uninstall: check-env
 	pip uninstall --yes $(MODULENAME) 2>&1 || printf "$(MODULENAME) not installed, moving on.\n"
+
+gamut: clean install test
+	@echo "\nRan the gamut successfully.\n"
 
 pep: check
 	autopep8 --in-place --recursive --select=E1,E3,E5,E7,W2,W6 geco_stat

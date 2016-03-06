@@ -65,7 +65,8 @@ class TimeIntervalSet(ReportInterface):
                 self._data = np.array([float(x) for x in intervalSet])
                 self.remove_empty_sets()
                 self._assert_self_consistent()
-        elif intervalSet == start == end == None or start == end:
+        elif (intervalSet is None and start is None and end is None or
+                start == end):
             self._data = np.array([])
         elif start < end:
             self._data = np.array([float(start), float(end)])
@@ -92,22 +93,26 @@ class TimeIntervalSet(ReportInterface):
             # this part is (mostly)  shared between set algebra methods
             start  = other.to_ndarray()[2*i]
             end    = other.to_ndarray()[2*i + 1]
-            bounds = result.__left_and_right_bounds__(start, end)
-            left   = bounds[0] % 2
-            right  = bounds[1] % 2
+            bnds   = result.__left_and_right_bounds__(start, end)
+            left   = bnds[0] % 2
+            right  = bnds[1] % 2
+            npcat  = np.concatenate # give this a shorter name
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
-                                              start, end], result.to_ndarray()[bounds[1]+1:]))
+                result._data = npcat((result.to_ndarray()[0:bnds[0]],
+                                      [start, end],
+                                      result.to_ndarray()[bnds[1]+1:]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
-                                              start], result.to_ndarray()[bounds[1]+1:]))
+                result._data = npcat((result.to_ndarray()[0:bnds[0]],
+                                      [start],
+                                      result.to_ndarray()[bnds[1]+1:]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
-                                              end], result.to_ndarray()[bounds[1]+1:]))
+                result._data = npcat((result.to_ndarray()[0:bnds[0]],
+                                      [end],
+                                      result.to_ndarray()[bnds[1]+1:]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate(
-                    (result.to_ndarray()[0:bounds[0]], result.to_ndarray()[bounds[1]+1:]))
+                result._data = npcat((result.to_ndarray()[0:bnds[0]],
+                                      result.to_ndarray()[bnds[1]+1:]))
             result.remove_empty_sets()
         return result
 
@@ -133,7 +138,9 @@ class TimeIntervalSet(ReportInterface):
         the nearest multiple of 64.
         """
         ans = np.floor(gps_time / 64.) * 64
-        assert ans % 1 == 0, "Out of precision in floats, answer should be integer"
+        if ans % 1 != 0:
+            raise ValueError("Out of precision in floats, answer should be "
+                             "an integer")
         return ans
 
     @staticmethod
@@ -148,7 +155,9 @@ class TimeIntervalSet(ReportInterface):
         the nearest multiple of 64.
         """
         ans = np.ceil(gps_time / 64.) * 64
-        assert ans % 1 == 0, "Out of precision in floats, answer should be integer"
+        if ans % 1 != 0:
+            raise ValueError("Out of precision in floats, answer should "
+                             "be an integer")
         return ans
 
     @staticmethod
@@ -206,21 +215,25 @@ class TimeIntervalSet(ReportInterface):
         covered by the frame files covering this time range. For example,
 
         >>> TSet = geco_stat.TimeIntervalSet
-        >>> geco_stat.TimeIntervalSet([64,192,256,320]).split_into_frame_file_intervals()
+        >>> TSet([64,192,256,320]).split_into_frame_file_intervals()
         [geco_stat.TimeIntervalSet([64.0, 128.0]), geco_stat.TimeIntervalSet([128.0, 192.0]), geco_stat.TimeIntervalSet([256.0, 320.0])]
 
         The input TimeIntervalSet instance must start and end on a valid
         frame file time (an integer multiple of 64) or else an error will
         be raised.
         """
-        assert self.round_to_frame_times() == self, "Can only split a rounded time interval"
+        if self.round_to_frame_times() != self:
+            raise ValueError("Can only split a rounded time interval")
         frame_intervals = []
         for i in range(0, len(self)//2):
-            assert int(self.to_ndarray()[2*i]) == self.to_ndarray()[
-                2*i], "Out of precision in floats, answer should be integer"
-            assert int(self.to_ndarray()[2*i+1]) == self.to_ndarray()[
-                2*i+1], "Out of precision in floats, answer should be integer"
-            for start_time in range(int(self.to_ndarray()[2*i]), int(self.to_ndarray()[2*i+1]), 64):
+            if int(self.to_ndarray()[2*i]) != self.to_ndarray()[2*i]:
+                raise ValueError("Out of precision in floats, answer should "
+                                 "be an integer")
+            if int(self.to_ndarray()[2*i+1]) != self.to_ndarray()[2*i+1]:
+                raise ValueError("Out of precision in floats, answer should "
+                                 "be an integer")
+            for start_time in range(int(self.to_ndarray()[2*i]),
+                                    int(self.to_ndarray()[2*i+1]), 64):
                 frame_intervals.append(type(self)([start_time, start_time+64]))
         return frame_intervals
 
@@ -246,8 +259,9 @@ class TimeIntervalSet(ReportInterface):
         """
         times = []
         for s in readable_string_list:
-            assert isinstance(
-                s, str), 'from_human_readable_strings() must use strings as input'
+            if not isinstance(s, str):
+                raise ValueError('from_human_readable_strings() must use '
+                                 'strings as input')
             times.append(cls.tconvert(s))
         return cls(times)
 
@@ -268,22 +282,25 @@ class TimeIntervalSet(ReportInterface):
             # this part is (mostly)  shared between set algebra methods
             start  = other.to_ndarray()[2*i]
             end    = other.to_ndarray()[2*i + 1]
-            bounds = self.__left_and_right_bounds__(start, end) # this differs
-            left   = bounds[0] % 2
-            right  = bounds[1] % 2
+            bnds   = self.__left_and_right_bounds__(start, end) # this differs
+            left   = bnds[0] % 2
+            right  = bnds[1] % 2
+            npcat  = np.concatenate # give this a shorter name
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = npcat((result.to_ndarray(),
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = npcat((result.to_ndarray(),
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1],
+                                      [end]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = npcat((result.to_ndarray(), [start],
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = npcat((result.to_ndarray(), [start],
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1],
+                                      [end]))
             result.remove_empty_sets()
         return result
 
@@ -308,22 +325,25 @@ class TimeIntervalSet(ReportInterface):
             # this part is (mostly)  shared between set algebra methods
             start  = other.to_ndarray()[2*i]
             end    = other.to_ndarray()[2*i + 1]
-            bounds = self.__left_and_right_bounds__(start, end) # this differs
-            left   = bounds[0] % 2
-            right  = bounds[1] % 2
+            bnds   = self.__left_and_right_bounds__(start, end) # this differs
+            left   = bnds[0] % 2
+            right  = bnds[1] % 2
+            npcat  = np.concatenate # give this a shorter name
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = npcat((result.to_ndarray(), [start],
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1],
+                                      [end]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = npcat((result.to_ndarray(), [start],
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = npcat((result.to_ndarray(),
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1],
+                                      [end]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate(
-                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = npcat((result.to_ndarray(),
+                                      self.to_ndarray()[bnds[0]:bnds[1]+1]))
             result.remove_empty_sets()
         return result
 
@@ -338,8 +358,8 @@ class TimeIntervalSet(ReportInterface):
             L[0] = index of leftmost value in S greater than or equal to a
             L[1] = index of rightmost value in S less than or equal to a
 
-        L is then used to determine a merge strategy for the union, intersection,
-        or complement of S with respect to [a, b).
+        L is then used to determine a merge strategy for the union,
+        intersection, or complement of S with respect to [a, b).
 
         For the sake of simplicity of implementation, this function only accepts
         positive even length lists of start and end points. In other words, an
@@ -445,7 +465,8 @@ class TimeIntervalSet(ReportInterface):
         return cls(d['data'], version=d['version'])
 
     def __to_dict__(self):
-        return {'data': np.array(self.to_ndarray()), 'version': self.__version__}
+        return {'data': np.array(self.to_ndarray()),
+                'version': self.__version__}
 
     def __eq__(self, other):
         return np.array_equal(self.to_ndarray(), other.to_ndarray())

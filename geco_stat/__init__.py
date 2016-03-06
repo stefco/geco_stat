@@ -634,10 +634,15 @@ class ReportSet(ReportInterface):
         # All or none of the three reports must be provided as arguments,
         # otherwise it would be possible to initialize an inconsistent
         # ReportSet.
-        if None == report == report_anomalies_only == report_sans_anomalies:
-            self.report                 = self.get_report_class()(bitrate=bitrate)
-            self.report_anomalies_only  = self.get_report_class()(bitrate=bitrate)
-            self.report_sans_anomalies  = self.get_report_class()(bitrate=bitrate)
+        if (report is None and
+                report_anomalies_only is None and
+                report_sans_anomalies is None):
+            self.report                 = \
+                self.get_report_class()(bitrate=bitrate)
+            self.report_anomalies_only  = \
+                self.get_report_class()(bitrate=bitrate)
+            self.report_sans_anomalies  = \
+                self.get_report_class()(bitrate=bitrate)
         else:
             self.report                 = report.clone()
             self.report_anomalies_only  = report_anomalies_only.clone()
@@ -898,10 +903,11 @@ def run_unit_tests():
 
     print('Testing TimeIntervalSet splitting into frame files.')
     try:
+        # this should raise a value error since the frame times are not rounded
         ti([66,68]).split_into_frame_file_intervals()
         raise AssertionError('Should not be able to split a time interval not '
                              'having round endpoints')
-    except AssertionError:
+    except ValueError:
         pass
 
     print('Testing HDF5 file saving capabilities.')

@@ -144,9 +144,10 @@ class Timeseries(np.ndarray):
     @classmethod
     def __remove_header_and_text__(cls, string):
         """
-        Delete first 6 lines; all spaces; and the word 'Data:' which precedes the
-        numerical data.
+        Delete first 6 lines; all spaces; and the word 'Data:' which precedes
+        the numerical data.
 
-        (This replaces sed and tr in the original implementation with native python.)
+        (This replaces sed and tr in the original implementation with native
+        python.)
         """
         return cls.__remove_lines__(string, 6).translate(None, 'Dat: ')

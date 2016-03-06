@@ -169,9 +169,12 @@ class Histogram(AbstractReportData):
             timeseries.flatten(),
             np.tile(self.t_ticks, num_sec),
             bins = [self.hist_bins, self.t_ticks])
-        assert xedges == self.hist_bins, 'xedges should be the histogram bins'
-        assert yedges == self.t_ticks, 'yedges should be the t_ticks'
-        assert self.bitrate == timeseries.bitrate, 'timeseries and histogram must have same bitrate'
+        assert xedges == self.hist_bins, \
+            'xedges should be the histogram bins'
+        assert yedges == self.t_ticks, \
+            'yedges should be the t_ticks'
+        assert self.bitrate == timeseries.bitrate, \
+            'timeseries and histogram must have same bitrate'
         self._assert_self_consistent()
         return type(self)(
             hist            = hist,
@@ -180,7 +183,8 @@ class Histogram(AbstractReportData):
             bitrate         = self.bitrate)
 
     def __eq__(self, other):
-        if self.hist_range != other.hist_range or self.hist_num_bins != other.hist_num_bins:
+        if (self.hist_range != other.hist_range or
+                self.hist_num_bins != other.hist_num_bins):
             return False
         if self.bitrate != other.bitrate:
             return False
@@ -279,17 +283,17 @@ class Statistics(AbstractReportData):
         return True
 
     def _assert_self_consistent(self):
-        assert self.sum.shape == (
-            self.bitrate,), "sum should be vector with length equal to bitrate"
-        assert self.sum_sq.shape == (
-            self.bitrate,), "sum_sq should be vector with length equal to bitrate"
-        assert self.max.shape == (
-            self.bitrate,), "max should be vector with length equal to bitrate"
-        assert self.min.shape == (
-            self.bitrate,), "min should be vector with length equal to bitrate"
+        assert self.sum.shape == (self.bitrate,), \
+            "sum should be vector with length equal to bitrate"
+        assert self.sum_sq.shape == (self.bitrate,), \
+            "sum_sq should be vector with length equal to bitrate"
+        assert self.max.shape == (self.bitrate,), \
+            "max should be vector with length equal to bitrate"
+        assert self.min.shape == (self.bitrate,), \
+            "min should be vector with length equal to bitrate"
         assert np.int64(self.num) == self.num
-        assert np.int64(
-            self.bitrate) == self.bitrate, 'bitrate must be an integer'
+        assert np.int64(self.bitrate) == self.bitrate, \
+            "bitrate must be an integer"
         if self.__version__ != __version__:
             raise ValueError(
                 'Statistics version ' +
@@ -297,8 +301,8 @@ class Statistics(AbstractReportData):
                 ' does not match lib version')
         if not ((self.bitrate,) == self.sum.shape ==
                 self.sum_sq.shape == self.max.shape == self.min.shape):
-            raise ValueError(
-                'Statistics fields must be 1-D with length equal to bitrate')
+            raise ValueError('Statistics fields must be 1-D with length equal '
+                             'to bitrate')
         return True
 
     @classmethod
@@ -396,11 +400,12 @@ class AbstractReport(ReportInterface):
 
         if data is None:
             data = self.__report_data_prototype__(bitrate)
-        self._data = data               # data grouped here
-        for key in data:                # instance attr pointers for convenience
+        self._data = data           # data grouped here
+        for key in data:            # instance attr pointers for convenience
             if hasattr(self, key):
-                raise ValueError(
-                    'AbstractReportData dictionary should not have attributes conflicting with AbstractReport attributes.')
+                raise ValueError('AbstractReportData dictionary should not '
+                                 'have attributes conflicting with '
+                                 'AbstractReport attributes.')
             setattr(self, key, data[key])
         self._assert_self_consistent()
 
@@ -436,12 +441,12 @@ class AbstractReport(ReportInterface):
         """
         MUST BE A STATICMETHOD.
 
-        Define a method for testing whether a timeseries is anomalous. If so, the
-        report generated from this timeseries will be unioned into report_anomalies_only.
-        If not, the report generated from this timeseries will be unioned
-        into report_sans_anomalies. In any case, the report will be unioned into
-        report, which contains report data on the entire timeseries contained in
-        the ReportSet.
+        Define a method for testing whether a timeseries is anomalous. If so,
+        the report generated from this timeseries will be unioned into
+        report_anomalies_only. If not, the report generated from this
+        timeseries will be unioned into report_sans_anomalies. In any case,
+        the report will be unioned into report, which contains report data on
+        the entire timeseries contained in the ReportSet.
         """
 
     def fold_in_timeseries(self, timeseries, time_intervals,
@@ -526,8 +531,9 @@ class AbstractReport(ReportInterface):
             # interactive prototyping.
             report_data_class = globals()[ data_dict[key]['class'] ]
             if not issubclass(report_data_class, AbstractReportData):
-                raise ValueError(
-                    'Cannot reconstruct Report data; class property not a valid AbstractReportData subclass')
+                raise ValueError('Cannot reconstruct Report data; class '
+                                 'property not a valid AbstractReportData '
+                                 'subclass')
             data[key] = report_data_class.__from_dict__(data_dict[key])
         return cls(
             bitrate         = d['bitrate'],
@@ -552,7 +558,8 @@ class AbstractReport(ReportInterface):
         if not isinstance(self, type(other)) or set(
                 self._data) != set(other._data):
             return False
-        if self.bitrate != other.bitrate or self.__version__ != other.__version__:
+        if (self.bitrate != other.bitrate or
+                self.__version__ != other.__version__):
             return False
         if self.time_intervals != other.time_intervals:
             return False
@@ -587,8 +594,8 @@ class DuoToneReport(AbstractReport):
 class ReportSet(ReportInterface):
     """
     Class for collections of Reports, allowing for more advanced procedures
-    that allow the user to distinguish between anomalous and typical time ranges in
-    the input data.
+    that allow the user to distinguish between anomalous and typical time
+    ranges in the input data.
     """
 
     # TODO Add notes, full intended time, current work block, and is_finished
@@ -609,8 +616,8 @@ class ReportSet(ReportInterface):
         if isinstance(report_class_name, str):
             self.report_class_name = report_class_name
             if not self.get_report_class() is type:
-                raise ValueError(
-                    'report_class must be equal to the name of a ReportData class')
+                raise ValueError('report_class must be equal to the name of '
+                                 'a ReportData class')
         else:
             raise ValueError('report_class must be a string')
 
@@ -649,16 +656,16 @@ class ReportSet(ReportInterface):
         If the function is called from ReportSet, the user must provide the
         self argument, which is then either interpreted as an instance of
         ReportSet, or as the class name string itself. In the latter case,
-        this function simply returns the Report class corresponding to the class
-        name passed as an argument.
+        this function simply returns the Report class corresponding to the
+        class name passed as an argument.
         """
         if not isinstance(self, str):
             self = self.report_class_name
         return globals()[self]
 
     @staticmethod
-    def from_time_and_channel_name(
-            report_class_name, channel_name, time_intervals, bitrate=__default_bitrate__):
+    def from_time_and_channel_name(report_class_name, channel_name,
+                                   time_intervals, bitrate=__default_bitrate__):
         """
         Each subclass of ReportSet should have its own well-defined
         constructor that rejects initialization data that would lead to an
@@ -708,7 +715,8 @@ class ReportSet(ReportInterface):
 
     def _assert_self_consistent(self):
         # TODO: make sure the r.__name__ business below works
-        for r in self.report, self.report_anomalies_only, self.report_sans_anomalies:
+        for r in (self.report, self.report_anomalies_only,
+                  self.report_sans_anomalies):
             if not isinstance(r, self.get_report_class()):
                 raise ValueError(
                     'key ' +
@@ -739,7 +747,8 @@ class ReportSet(ReportInterface):
                     'key ' +
                     t.__name__ +
                     ' has different version than this ReportSet')
-        if self.report_anomalies_only + self.report_sans_anomalies != self.report:
+        if (self.report_anomalies_only + self.report_sans_anomalies !=
+                self.report):
             raise ValueError(
                 'whole report should be union of anomalous and nominal parts')
         if self.missing_times + self.time_intervals != self.time_intervals:
@@ -766,8 +775,8 @@ class ReportSet(ReportInterface):
             raise ValueError('instances of ReportSet must have same version')
         if self.time_intervals.intersection(
                 other.time_intervals) == TimeIntervalSet([]):
-            raise ValueError(
-                'instances of ReportSet cannot cover overlapping time intervals')
+            raise ValueError('instances of ReportSet cannot cover overlapping '
+                             'time intervals')
 
     def __union__(self, other):
         ans = self.clone()
@@ -813,15 +822,15 @@ class ReportSet(ReportInterface):
 
     def __to_dict__(self):
         return {
-            'report_class_name':        self.report_class_name,
-            'bitrate':                  np.int64(self.bitrate),
-            'version':                  self.__version__,
-            'channel_name':             self.channel_name,
-            'time_intervals':           self.time_intervals.__to_dict__(),
-            'report':                   self.report.__to_dict__(),
-            'report_anomalies_only':    self.report_anomalies_only.__to_dict__(),
-            'report_sans_anomalies':    self.report_sans_anomalies.__to_dict__(),
-            'missing_times':            self.missing_times.__to_dict__()
+            'report_class_name':      self.report_class_name,
+            'bitrate':                np.int64(self.bitrate),
+            'version':                self.__version__,
+            'channel_name':           self.channel_name,
+            'time_intervals':         self.time_intervals.__to_dict__(),
+            'report':                 self.report.__to_dict__(),
+            'report_anomalies_only':  self.report_anomalies_only.__to_dict__(),
+            'report_sans_anomalies':  self.report_sans_anomalies.__to_dict__(),
+            'missing_times':          self.missing_times.__to_dict__()
         }
 
     def __eq__(self, other):
@@ -865,37 +874,33 @@ def run_unit_tests():
     # TODO: make a timeseries and then from there unit test everything else
 
     print('Testing TimeIntervalSet arithmetic.')
-    assert TimeIntervalSet([66,69]) + TimeIntervalSet([67,72]
-                                                      ) == TimeIntervalSet([66,72]), "Union failing"
-    assert TimeIntervalSet([66,69]) * TimeIntervalSet([67,72]
-                                                      ) == TimeIntervalSet([67,69]), "Intersection failing"
-    assert TimeIntervalSet([66,69]) + TimeIntervalSet([70,72]
-                                                      ) == TimeIntervalSet([66,69,70,72]), "Union failing"
-    assert TimeIntervalSet([66,73]) - TimeIntervalSet([67,72]
-                                                      ) == TimeIntervalSet([66,67,72,73]), "Complement failing"
-    assert TimeIntervalSet([66,73]) - TimeIntervalSet([66,73]
-                                                      ) == TimeIntervalSet(), "Complement failing"
+    ti = TimeIntervalSet
+    assert ti([66,69]) + ti([67,72]) == ti([66,72]), "Union failing"
+    assert ti([66,69]) * ti([67,72]) == ti([67,69]), "Intersection failing"
+    assert ti([66,69]) + ti([70,72]) == ti([66,69,70,72]), "Union failing"
+    assert ti([66,73]) - ti([67,72]) == ti([66,67,72,73]), "Complement failing"
+    assert ti([66,73]) - ti([66,73]) == ti(), "Complement failing"
     # TODO: Add some more arithmetic assertions.
 
     print('Testing TimeIntervalSet frame time rounding.')
-    assert TimeIntervalSet([65,124]).round_to_frame_times() == TimeIntervalSet(
-        [64, 128]), "Rounding to frame times is failing"
-    assert TimeIntervalSet([64,128]).round_to_frame_times() == TimeIntervalSet(
-        [64, 128]), "Rounding to frame times is failing"
-    assert TimeIntervalSet([63,65,120,133]).round_to_frame_times(
-    ) == TimeIntervalSet([0,192]), "Rounding to frame times is failing"
+    assert ti([65,124]).round_to_frame_times() == ti([64, 128]), \
+        "Rounding to frame times is failing"
+    assert ti([64,128]).round_to_frame_times() == ti([64, 128]), \
+        "Rounding to frame times is failing"
+    assert ti([63,65,120,133]).round_to_frame_times() == ti([0,192]), \
+        "Rounding to frame times is failing"
 
     print('Testing TimeIntervalSet length calculation.')
-    assert TimeIntervalSet([6400,6464]).combined_length(
-    ) == 64, 'Time interval total length calculations are off'
-    assert TimeIntervalSet([0,4,6400,6466]).combined_length(
-    ) == 70, 'Time interval total length calculations are off'
+    assert ti([6400,6464]).combined_length() == 64, \
+        'Time interval total length calculations are off'
+    assert ti([0,4,6400,6466]).combined_length() == 70, \
+        'Time interval total length calculations are off'
 
     print('Testing TimeIntervalSet splitting into frame files.')
     try:
-        TimeIntervalSet([66,68]).split_into_frame_file_intervals()
-        raise AssertionError(
-            'Should not be able to split a time interval not having round endpoints')
+        ti([66,68]).split_into_frame_file_intervals()
+        raise AssertionError('Should not be able to split a time interval not '
+                             'having round endpoints')
     except AssertionError:
         pass
 

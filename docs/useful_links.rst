@@ -137,6 +137,21 @@ Vim Fun
 .. _Saving vim macros: http://stackoverflow.com/questions/2024443/saving-vim-macros
 .. _Put backspace in a vim macro: http://stackoverflow.com/questions/27578758/vim-macro-with-backspace
 
+Git Tricks
+----------
+
+* Use `git show`_ to ``cat`` the contents of an old revision of a file.
+* `See the differences`_ in a particular file between revisions.
+* `Tag your commits`_ with, e.g., version information
+* Add `hooks`_ to your commits so that ``git`` automatically performs certain
+  tasks before/after operations like ``git commit``. Useful for, e.g.,
+  auto-tagging commits when the version updates!
+
+.. _git show: http://stackoverflow.com/questions/888414/git-checkout-older-revision-of-a-file-under-a-new-name
+.. _See the differences: http://stackoverflow.com/questions/3338126/how-to-diff-the-same-file-between-two-different-commits-on-the-same-branch
+.. _Tag your commits: https://git-scm.com/book/en/v2/Git-Basics-Tagging
+.. _hooks: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+
 Python Versions
 ---------------
 

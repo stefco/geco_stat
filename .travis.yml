@@ -18,16 +18,20 @@ addons:
       - python-scipy
       - python-h5py
 
+# only run 5 tests so that testing can go as quickly as possible
 python:
   - '2.6'
-  - '2.7'
+  # remove; somewhat redundant
+  # - '2.7'
   - '2.7_with_system_site_packages'
-  - '3.2'
+  # low usage percentages, and unlikely to break things
+  # - '3.2'
   - '3.3'
   - '3.4'
   - '3.5'
-  - 3.5-dev
-  - nightly
+  # somewhat redundant
+  # - 3.5-dev
+  # - nightly
   # pypy causing trouble, ignore it for now
   # - 'pypy'
 
@@ -56,6 +60,10 @@ script:
   - cd foo
   - python -c "import geco_stat as g; g.run_unit_tests()"
   - cd ..
+
+cache:
+  - apt
+  - pip
 
 deploy:
   provider: pypi

@@ -7,6 +7,7 @@ from geco_stat._constants import __default_bitrate__
 from geco_stat.Exceptions import MissingChannelDataException
 from geco_stat.Time import TimeIntervalSet
 
+
 class Timeseries(np.ndarray):
     """
     A thin wrapper for ndarrays, adding in a couple of convenience methods
@@ -15,11 +16,11 @@ class Timeseries(np.ndarray):
 
     @classmethod
     def from_time_and_channel_name(
-            cls,
-            channel_name,
-            time_interval,
-            bitrate=__default_bitrate__
-        ):
+        cls,
+        channel_name,
+        time_interval,
+        bitrate=__default_bitrate__
+    ):
         """
         Load a timeseries using this channel_name and time_interval.
 
@@ -28,19 +29,19 @@ class Timeseries(np.ndarray):
         """
         frame_path = cls.locate_frame_file(channel_name, time_interval)
         return cls.from_frame_file(
-                channel_name,
-                frame_path,
-                time_interval,
-                bitrate)
+            channel_name,
+            frame_path,
+            time_interval,
+            bitrate)
 
     @classmethod
     def from_frame_file(
-            cls,
-            channel_name,
-            path,
-            time_intervals,
-            bitrate=__default_bitrate__
-        ):
+        cls,
+        channel_name,
+        path,
+        time_intervals,
+        bitrate=__default_bitrate__
+    ):
         """
         Load channel from file path to array.
 
@@ -71,7 +72,8 @@ class Timeseries(np.ndarray):
         # instantiate numpy array and return it; will have number of rows equal
         # to the number of seconds in a frame file and number of columns equal
         # to the bitrate of the channel.
-        ans = np.fromstring(formatted_data_string, sep=',').reshape((64, bitrate)).view(cls)
+        ans = np.fromstring(formatted_data_string, sep=',').reshape(
+            (64, bitrate)).view(cls)
         ans.time_intervals = time_intervals
         ans.bitrate = bitrate
         return ans
@@ -80,7 +82,9 @@ class Timeseries(np.ndarray):
         """
         Get the number of seconds worth of data in this frame file.
         """
-        assert self.shape[0] == self.time_intervals.combined_length(), 'mismatch between time_interval length and number of seconds of data'
+        if self.shape[0] != self.time_intervals.combined_length():
+            raise Exception('data corrupted; mismatch between time_interval '
+                            'length and number of seconds of data')
         return self.shape[0]
 
     @staticmethod
@@ -102,16 +106,20 @@ class Timeseries(np.ndarray):
 
         detector_prefix = channel_name[0]
         dump = subprocess.Popen([
-                'gw_data_find',
-                '-o', detector_prefix,
-                '-t', detector_prefix + '1_R',
-                '-s', time_interval.to_ndarray()[0],
-                '-e', time_interval.to_ndarray()[1],
-                '-u', 'file'], stdout=subprocess.PIPE)
+            'gw_data_find',
+            '-o', detector_prefix,
+            '-t', detector_prefix + '1_R',
+            '-s', time_interval.to_ndarray()[0],
+            '-e', time_interval.to_ndarray()[1],
+            '-u', 'file'], stdout=subprocess.PIPE)
         frame_path = dump.communicate()[0]
-        assert frame_path[0:15] == 'file://localhost', 'expected file://localhost prefix output from gw_data_find, got %s' % frame_path[0:15]
+        if frame_path[0:15] != 'file://localhost':
+            raise Exception('expected file://localhost prefix output from ' +
+                            'gw_data_find, got %s' % frame_path[0:15])
         frame_path = frame_path[16:]
-        assert os.path.exists(frame_path), 'gw_data_find returned faulty path %s' % frame_path
+        if not os.path.exists(frame_path):
+            raise Exception('gw_data_find returned faulty ' +
+                            'path:\n\t %s' % frame_path)
         return frame_path
 
     @staticmethod

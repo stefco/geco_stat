@@ -7,6 +7,7 @@ import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
 from geco_stat._constants import __default_bitrate__
 
+
 class ReportInterface(object):
     "Abstract interface used by all geco_statistics classes"
     __metaclass__  = abc.ABCMeta
@@ -39,8 +40,8 @@ class ReportInterface(object):
     @classmethod
     def __save_dict_to_hdf5__(cls, dic, filename):
         """
-        Save a dictionary whose contents are only strings, np.float64, np.int64,
-        np.ndarray, and other dictionaries following this structure
+        Save a dictionary whose contents are only strings, np.float64,
+        np.int64, np.ndarray, and other dictionaries following this structure
         to an HDF5 file. These are the sorts of dictionaries that are meant
         to be produced by the ReportInterface__to_dict__() method. The saved
         dictionary can then be loaded using __load_dict_to_hdf5__(), and the
@@ -74,15 +75,18 @@ class ReportInterface(object):
             if isinstance(item, (np.int64, np.float64, str)):
                 h5file[path + key] = item
                 if not h5file[path + key].value == item:
-                    raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+                    raise ValueError('The data representation in the HDF5 file '
+                                     'does not match the original dict.')
             # save numpy arrays
             elif isinstance(item, np.ndarray):
                 h5file[path + key] = item
                 if not np.array_equal(h5file[path + key].value, item):
-                    raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+                    raise ValueError('The data representation in the HDF5 file '
+                                     'does not match the original dict.')
             # save dictionaries
             elif isinstance(item, dict):
-                cls.__recursively_save_dict_contents_to_group__(h5file, path + key + '/', item)
+                cls.__recursively_save_dict_contents_to_group__(
+                    h5file, path + key + '/', item)
             # other types cannot be saved and will result in an error
             else:
                 raise ValueError('Cannot save %s type.' % type(item))
@@ -97,7 +101,8 @@ class ReportInterface(object):
         ReportInterface.__from_dict__() method.
         """
         with h5py.File(filename, 'r') as h5file:
-            return cls.__recursively_load_dict_contents_from_group__(h5file, '/')
+            return cls.__recursively_load_dict_contents_from_group__(h5file,
+                                                                     '/')
 
     @classmethod
     def __recursively_load_dict_contents_from_group__(cls, h5file, path):
@@ -110,7 +115,8 @@ class ReportInterface(object):
             if isinstance(item, h5py._hl.dataset.Dataset):
                 ans[key] = item.value
             elif isinstance(item, h5py._hl.group.Group):
-                ans[key] = cls.__recursively_load_dict_contents_from_group__(h5file, path + key + '/')
+                ans[key] = cls.__recursively_load_dict_contents_from_group__(
+                    h5file, path + key + '/')
         return ans
 
     @abc.abstractmethod
@@ -130,7 +136,8 @@ class ReportInterface(object):
         extend it.
         """
         l = len(timeseries.flatten())
-        assert l % self.bitrate == 0, 'Flattened timeseries length must be integer mult of bitrate.'
+        assert l % self.bitrate == 0, ('Flattened timeseries length must be '
+                                       'integer mult of bitrate.')
         assert l > 0, 'Cannot pass an empty timeseries.'
 
     @abc.abstractmethod
@@ -147,8 +154,8 @@ class ReportInterface(object):
     @abc.abstractmethod
     def __from_dict__(cls, d):
         """
-        Construct an instance of this class using a dictionary of the form output
-        by self.__to_dict__. Should generally be a class method.
+        Construct an instance of this class using a dictionary of the form
+        output by self.__to_dict__. Should generally be a class method.
         """
 
     @abc.abstractmethod

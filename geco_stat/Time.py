@@ -8,6 +8,8 @@ from geco_stat.Interface import ReportInterface
 from geco_stat.Exceptions import VersionException
 
 # TODO: Make PlottableInterface
+
+
 class TimeIntervalSet(ReportInterface):
     """
     TimeIntervalSet
@@ -28,7 +30,8 @@ class TimeIntervalSet(ReportInterface):
     potentially dangerous side-effects.
     """
 
-    def __init__(self, intervalSet=None, start=None, end=None, version=__version__):
+    def __init__(self, intervalSet=None, start=None, end=None,
+                 version=__version__):
         """
         If no time interval is given at initialization, the TimeIntervalSet
         begins empty. There are two ways to initialize it with a nonempty set
@@ -54,7 +57,8 @@ class TimeIntervalSet(ReportInterface):
             raise VersionException()
         if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
-                raise ValueError('intervalSet set must have even length (equal starts and ends)')
+                raise ValueError('intervalSet set must have even length (equal '
+                                 'starts and ends)')
             elif not np.array_equal(sorted(intervalSet), intervalSet):
                 raise ValueError('intervalSet must be sorted')
             else:
@@ -68,7 +72,8 @@ class TimeIntervalSet(ReportInterface):
             self.remove_empty_sets()
             self._assert_self_consistent()
         else:
-            raise ValueError('Invalid combination of arguments. See documentation.')
+            raise ValueError('Invalid combination of arguments. '
+                             'See documentation.')
 
     def __union__(self, other):
         """
@@ -92,13 +97,17 @@ class TimeIntervalSet(ReportInterface):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [start, end], result.to_ndarray()[bounds[1]+1:]))
+                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
+                                              start, end], result.to_ndarray()[bounds[1]+1:]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [start], result.to_ndarray()[bounds[1]+1:]))
+                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
+                                              start], result.to_ndarray()[bounds[1]+1:]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [end], result.to_ndarray()[bounds[1]+1:]))
+                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], [
+                                              end], result.to_ndarray()[bounds[1]+1:]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate((result.to_ndarray()[0:bounds[0]], result.to_ndarray()[bounds[1]+1:]))
+                result._data = np.concatenate(
+                    (result.to_ndarray()[0:bounds[0]], result.to_ndarray()[bounds[1]+1:]))
             result.remove_empty_sets()
         return result
 
@@ -164,11 +173,13 @@ class TimeIntervalSet(ReportInterface):
 
         """
         if type(input_time) is str:
-            dump = subprocess.Popen(["lalapps_tconvert",str(input_time)], stdout=subprocess.PIPE)
+            dump = subprocess.Popen(
+                ["lalapps_tconvert",str(input_time)], stdout=subprocess.PIPE)
             converted_time = dump.communicate()[0]
             return int(converted_time) # should be an int; if not, that's bad
         else:
-            dump = subprocess.Popen(["lalapps_tconvert",str(int(input_time))], stdout=subprocess.PIPE)
+            dump = subprocess.Popen(["lalapps_tconvert",str(
+                int(input_time))], stdout=subprocess.PIPE)
             converted_time = dump.communicate()[0]
             return converted_time
 
@@ -205,8 +216,10 @@ class TimeIntervalSet(ReportInterface):
         assert self.round_to_frame_times() == self, "Can only split a rounded time interval"
         frame_intervals = []
         for i in range(0, len(self)//2):
-            assert int(self.to_ndarray()[2*i]) == self.to_ndarray()[2*i], "Out of precision in floats, answer should be integer"
-            assert int(self.to_ndarray()[2*i+1]) == self.to_ndarray()[2*i+1], "Out of precision in floats, answer should be integer"
+            assert int(self.to_ndarray()[2*i]) == self.to_ndarray()[
+                2*i], "Out of precision in floats, answer should be integer"
+            assert int(self.to_ndarray()[2*i+1]) == self.to_ndarray()[
+                2*i+1], "Out of precision in floats, answer should be integer"
             for start_time in range(int(self.to_ndarray()[2*i]), int(self.to_ndarray()[2*i+1]), 64):
                 frame_intervals.append(type(self)([start_time, start_time+64]))
         return frame_intervals
@@ -233,7 +246,8 @@ class TimeIntervalSet(ReportInterface):
         """
         times = []
         for s in readable_string_list:
-            assert isinstance(s, str), 'from_human_readable_strings() must use strings as input'
+            assert isinstance(
+                s, str), 'from_human_readable_strings() must use strings as input'
             times.append(cls.tconvert(s))
         return cls(times)
 
@@ -259,13 +273,17 @@ class TimeIntervalSet(ReportInterface):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate((result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate((result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate((result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate((result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
             result.remove_empty_sets()
         return result
 
@@ -281,7 +299,8 @@ class TimeIntervalSet(ReportInterface):
         self._assert_self_consistent()
         other._assert_self_consistent()
         if self.union(other) != other:
-            raise ValueError('Can only take complement with respect to a superset.')
+            raise ValueError('Can only take complement with respect to a '
+                             'superset.')
         if len(self) == 0:
             return other
         result = TimeIntervalSet()
@@ -294,13 +313,17 @@ class TimeIntervalSet(ReportInterface):
             right  = bounds[1] % 2
             # the conditional responses are unique to each set algebra method
             if left == 0 and right == 1:
-                result._data = np.concatenate((result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
             elif left == 0 and right == 0:
-                result._data = np.concatenate((result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), [start], self.to_ndarray()[bounds[0]:bounds[1]+1]))
             elif left == 1 and right == 1:
-                result._data = np.concatenate((result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1], [end]))
             elif left == 1 and right == 0:
-                result._data = np.concatenate((result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
+                result._data = np.concatenate(
+                    (result.to_ndarray(), self.to_ndarray()[bounds[0]:bounds[1]+1]))
             result.remove_empty_sets()
         return result
 
@@ -355,7 +378,8 @@ class TimeIntervalSet(ReportInterface):
 
     def _confirm_unionability(self, other):
         if type(self) != type(other):
-            raise ValueError('Type mismatch: cannot union ' + str(type(self)) + ' with ' + str(type(other)))
+            raise ValueError('Type mismatch: cannot union ' +
+                             str(type(self)) + ' with ' + str(type(other)))
         if self.__version__ != other.__version__:
             raise ValueError('TimeIntervalSets have different versions')
         return True
@@ -363,11 +387,13 @@ class TimeIntervalSet(ReportInterface):
     def _assert_self_consistent(self):
         'Check that this instance has form consistent with the class spec'
         if type(self.to_ndarray()) != np.ndarray:
-            raise Exception('TimeIntervalSet corrupted: data not a numpy.ndarray')
+            raise Exception('TimeIntervalSet corrupted: '
+                            'data not a numpy.ndarray')
         elif not np.array_equal(sorted(self.to_ndarray()), self.to_ndarray()):
             raise Exception('TimeIntervalSet corrupted: data not sorted')
         elif len(self.to_ndarray()) % 2 != 0:
-            raise Exception('TimeIntervalSet corrupted: odd number of endpoints')
+            raise Exception('TimeIntervalSet corrupted: odd number '
+                            'of endpoints')
         return True
 
     def __clone__(self):
@@ -403,7 +429,8 @@ class TimeIntervalSet(ReportInterface):
         tstring = ""
         i = 0
         for time in times:
-            dump = subprocess.Popen(["lalapps_tconvert",time], stdout=subprocess.PIPE)
+            dump = subprocess.Popen(
+                ["lalapps_tconvert",time], stdout=subprocess.PIPE)
             if i == 0:
                 tstring += '[' + dump.communicate()[0][:-1] + ', '
                 i = 1

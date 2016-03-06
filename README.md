@@ -8,8 +8,10 @@
 | ------ | ---------------- | ------ |
 | Master | Travis CI        | [![Master build Status](https://travis-ci.org/stefco/geco_stat.svg?branch=master)](https://travis-ci.org/stefco/geco_stat) |
 | Master | Codeship         | [![Codeship Test Status](https://img.shields.io/codeship/e9762300-bd59-0133-0ed3-2a1d867cc1c8/master.svg)](https://codeship.com/projects/136547) |
+| Master | Landscape        | [![Code Health](https://landscape.io/github/stefco/geco_stat/dev/landscape.svg?style=flat)](https://landscape.io/github/stefco/geco_stat/dev) |
 | Dev    | Travis CI        | [![Dev build Status](https://travis-ci.org/stefco/geco_stat.svg?branch=dev)](https://travis-ci.org/stefco/geco_stat) |
 | Dev    | Codeship         | [![Codeship Test Status](https://img.shields.io/codeship/e9762300-bd59-0133-0ed3-2a1d867cc1c8/dev.svg)](https://codeship.com/projects/136547) |
+| Dev    | Landscape        | [![Code Health](https://landscape.io/github/stefco/geco_stat/master/landscape.svg?style=flat)](https://landscape.io/github/stefco/geco_stat/master) |
 
 ## Purpose
 

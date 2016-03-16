@@ -146,11 +146,13 @@ Git Tricks
 * Add `hooks`_ to your commits so that ``git`` automatically performs certain
   tasks before/after operations like ``git commit``. Useful for, e.g.,
   auto-tagging commits when the version updates!
+* Symbolic link to hooks in git, for `version-controlling your git hooks`_.
 
 .. _git show: http://stackoverflow.com/questions/888414/git-checkout-older-revision-of-a-file-under-a-new-name
 .. _See the differences: http://stackoverflow.com/questions/3338126/how-to-diff-the-same-file-between-two-different-commits-on-the-same-branch
 .. _Tag your commits: https://git-scm.com/book/en/v2/Git-Basics-Tagging
 .. _hooks: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+.. _version-controlling your git hooks: http://stackoverflow.com/questions/4592838/symbolic-link-to-a-hook-in-git
 
 Python Versions
 ---------------

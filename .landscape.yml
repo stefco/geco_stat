@@ -1,0 +1,19 @@
+# landscape.io configuration for GWpy
+
+max-line-length: 80
+
+# ignore non-package files/directories
+ignore-paths:
+    - docs
+    - env
+    - hooks
+    # - examples
+    # - ez_setup.py
+
+requirements:
+  - requirements.txt
+
+# ignore errors
+# pylint:
+#   disable:
+#     - super-on-old-class

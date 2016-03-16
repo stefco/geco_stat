@@ -177,7 +177,7 @@ Documentation and Testing using Sphinx
 Misc.
 -----
 
-* How to `schedule jobs`_ on UNIX systems using ``chrontab``.
+* How to `schedule jobs`_ on UNIX systems using ``crontab``.
 * How to `schedule larger cluster jobs`_ using Condor.
 * How to `determine what OS you are running on`_.
 * How to `check if a program or command exists`_ from within a bash script.

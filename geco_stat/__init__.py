@@ -5,7 +5,7 @@ import abc
 import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
 from geco_stat._constants import __default_bitrate__
-from geco_stat.Interface import ReportInterface
+from geco_stat.Abstract import AbstractReport
 from geco_stat.Time import TimeIntervalSet
 from geco_stat.Exceptions import VersionException, MissingChannelDataException
 from geco_stat.Timeseries import Timeseries
@@ -13,10 +13,10 @@ from geco_stat.Timeseries import Timeseries
 
 # could use the interval package, but would be one more external dependency
 
-# TODO: this should probably not subclass ReportInterface, unless I can think
-# of some reason why the file I/O features of ReportInterface would be
+# TODO: this should probably not subclass AbstractReport, unless I can think
+# of some reason why the file I/O features of AbstractReport would be
 # independently valuable here.
-class PlottableInterface(ReportInterface):
+class AbstractPlottable(AbstractReport):
     """
     An interface for generating matplotlib figures that can be used in
     visualizing data.
@@ -39,16 +39,16 @@ class PlottableInterface(ReportInterface):
         information content of this object. Should return a string.
         """
 
-# TODO: Make PlottableInterface
+# TODO: Make AbstractPlottable
 
 
-class AbstractReportData(ReportInterface):
+class AbstractReportData(AbstractReport):
     """
     Abstract class for aggregated data. All instances must implement interface.
     """
     __metaclass__  = abc.ABCMeta
 
-# TODO: Make PlottableInterface
+# TODO: Make AbstractPlottable
 
 
 class Histogram(AbstractReportData):
@@ -194,7 +194,7 @@ class Histogram(AbstractReportData):
             return False
         return np.array_equal(self.hist, other.hist)
 
-# TODO: Make PlottableInterface
+# TODO: Make AbstractPlottable
 
 
 class Statistics(AbstractReportData):
@@ -355,10 +355,10 @@ class Statistics(AbstractReportData):
             np.array_equal(self.num,    other.num)
         )
 
-# TODO: Make PlottableInterface
+# TODO: Make AbstractPlottable
 
 
-class AbstractReport(ReportInterface):
+class AbstractReport(AbstractReport):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
@@ -591,7 +591,7 @@ class DuoToneReport(AbstractReport):
         return False
 
 
-class ReportSet(ReportInterface):
+class ReportSet(AbstractReport):
     """
     Class for collections of Reports, allowing for more advanced procedures
     that allow the user to distinguish between anomalous and typical time
@@ -924,9 +924,9 @@ def run_unit_tests():
             'kronecker2d': np.identity(3)
         }
     }
-    ReportInterface.__save_dict_to_hdf5__(
+    AbstractReport.__save_dict_to_hdf5__(
         ex, 'geco_statistics_test_hdf5_dict_example.hdf5')
-    loaded = ReportInterface.__load_dict_from_hdf5__(
+    loaded = AbstractReport.__load_dict_from_hdf5__(
         'geco_statistics_test_hdf5_dict_example.hdf5')
     os.remove('geco_statistics_test_hdf5_dict_example.hdf5')
     np.testing.assert_equal(loaded, ex)

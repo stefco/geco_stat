@@ -29,7 +29,7 @@ class AbstractTimeSeries(object):
     __metaclass__  = abc.ABCMeta
     __version__ = __version__
 
-class TimeSeriesDerivableInterface(object):
+class AbstractTimeSeriesDerivable(object):
     """
     The purpose of ``geco_stat`` is to look at data and do things with it,
     so it is fitting that the primordial interface provides methods for
@@ -66,13 +66,13 @@ class TimeSeriesDerivableInterface(object):
         Create a compatible object using an AbstractTimeSeries as input.
         """
 
-class NonIntersectingUnionableInterface(TimeSeriesDerivableInterface):
+class AbstractNonIntersectingUnionable(AbstractTimeSeriesDerivable):
     """
     An interface describing classes whose members contain information that is
     associated with specific time intervals. These members can be unioned or
     "added" together provided that they don't contain redundant time
     information. This makes it possible to iteratively build instances of
-    NonIntersectingUnionableInterface that cover large, possibly disjoint
+    AbstractNonIntersectingUnionable that cover large, possibly disjoint
     spans of time from smaller "atomic" instances simply by unioning.
     """
     __metaclass__  = abc.ABCMeta
@@ -132,9 +132,9 @@ class NonIntersectingUnionableInterface(TimeSeriesDerivableInterface):
         Make sure this instance is self-consistent.
         """
 
-class DictRepresentableInterface(NonIntersectingUnionableInterface):
+class AbstractDictRepresentable(AbstractNonIntersectingUnionable):
     """
-    Subclasses of DictRepresentableInterface contain information that can be
+    Subclasses of AbstractDictRepresentable contain information that can be
     represented as a **PARTICULAR** type of dictionary. To be specific, they
     can be represented as dictionaries whose elements are one of:
 
@@ -142,7 +142,7 @@ class DictRepresentableInterface(NonIntersectingUnionableInterface):
     2. A numpy.int64.
     3. A numpy.float64.
     4. A numpy.ndarray.
-    5. A DictRepresentableInterface instance.
+    5. A AbstractDictRepresentable instance.
 
     This allows for unambiguous file saving and loading through the uniform
     intermediate step of a dictionary representation.
@@ -200,9 +200,9 @@ class DictRepresentableInterface(NonIntersectingUnionableInterface):
     def __from_dict__(cls, d):
         pass
 
-class HDF5_IO(DictRepresentableInterface):
+class HDF5_IO(AbstractDictRepresentable):
     """
-    Uses the ``to_dict`` methods of DictRepresentableInterface to save and load
+    Uses the ``to_dict`` methods of AbstractDictRepresentable to save and load
     HDF5 files of arbitrary complexity.
     """
     __metaclass__  = abc.ABCMeta
@@ -215,7 +215,7 @@ class HDF5_IO(DictRepresentableInterface):
     @classmethod
     def load_hdf5(cls, filename):
         """Load an instance saved in an hdf5 file."""
-        # TODO: Make this a ReportInterface-defined staticmethod that only
+        # TODO: Make this a AbstractReport-defined staticmethod that only
         # needs class information that is already provided in the saved
         # dictionary.
         return cls.__from_dict__(cls.__load_dict_from_hdf5__(filename))
@@ -226,7 +226,7 @@ class HDF5_IO(DictRepresentableInterface):
         Save a dictionary whose contents are only strings, np.float64,
         np.int64, np.ndarray, and other dictionaries following this structure
         to an HDF5 file. These are the sorts of dictionaries that are meant
-        to be produced by the ReportInterface__to_dict__() method. The saved
+        to be produced by the AbstractReport__to_dict__() method. The saved
         dictionary can then be loaded using __load_dict_to_hdf5__(), and the
         contents of the loaded dictionary will be the same as those of the
         original.
@@ -280,8 +280,8 @@ class HDF5_IO(DictRepresentableInterface):
         Load a dictionary whose contents are only strings, floats, ints,
         numpy arrays, and other dictionaries following this structure
         from an HDF5 file. These dictionaries can then be used to reconstruct
-        ReportInterface subclass instances using the
-        ReportInterface.__from_dict__() method.
+        AbstractReport subclass instances using the
+        AbstractReport.__from_dict__() method.
         """
         with h5py.File(filename, 'r') as h5file:
             return cls.__recursively_load_dict_contents_from_group__(h5file,
@@ -302,10 +302,10 @@ class HDF5_IO(DictRepresentableInterface):
                     h5file, path + key + '/')
         return ans
 
-# Rename ReportInterface; it should be called something more
+# Rename AbstractReport; it should be called something more
 # usage-agnostic and feature-descriptive.
 # FIXME deprecated
-class ReportInterface(HDF5_IO):
+class AbstractReport(HDF5_IO):
     "Abstract interface used by all geco_statistics classes"
     __metaclass__  = abc.ABCMeta
     __version__ = __version__

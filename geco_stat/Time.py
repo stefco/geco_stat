@@ -4,13 +4,13 @@ import bisect
 import subprocess
 import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
-from geco_stat.Interface import ReportInterface
+from geco_stat.Abstract import AbstractReport
 from geco_stat.Exceptions import VersionException
 
-# TODO: Make PlottableInterface
+# TODO: Make AbstractPlottable
 
 
-class TimeIntervalSet(ReportInterface):
+class TimeIntervalSet(AbstractReport):
     """
     TimeIntervalSet
 

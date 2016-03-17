@@ -5,7 +5,6 @@ import h5py             # >=2.5.0
 import abc
 import numpy as np      # >=1.10.4
 from geco_stat._version import __version__
-from geco_stat._constants import __default_bitrate__
 from geco_stat.Exceptions import VersionException
 
 # You can store classes in the factory for later recovery, but you have to
@@ -342,9 +341,9 @@ class HDF5_IO(AbstractDictRepresentable):
         Save a dictionary whose contents are only strings, np.float64,
         np.int64, np.ndarray, and other dictionaries following this structure
         to an HDF5 file. These are the sorts of dictionaries that are meant
-        to be produced by the AbstractDictRepresentable.to_dict() method. The saved
-        dictionary can then be loaded using __load_dict_to_hdf5__(), and the
-        contents of the loaded dictionary will be the same as those of the
+        to be produced by the AbstractDictRepresentable.to_dict() method. The
+        saved dictionary can then be loaded using __load_dict_to_hdf5__(), and
+        the contents of the loaded dictionary will be the same as those of the
         original.
         """
         if os.path.exists(filename):

@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os
-import abc
 import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
-from geco_stat._constants import __default_bitrate__
-from geco_stat.Abstract import Factory
-from geco_stat.Abstract import AbstUnionable
-from geco_stat.Abstract import AbstractPlottable
-from geco_stat.Abstract import HDF5_IO
+from geco_stat._constants import __default_bitrate__    # should be accessible
+from geco_stat.Abstract import Factory                  # should be accessible
+from geco_stat.Abstract import AbstUnionable            # should be accessible
+from geco_stat.Abstract import AbstractPlottable        # should be accessible
+from geco_stat.Abstract import HDF5_IO                  # should be accessible
 from geco_stat.Report import AbstReport
-from geco_stat.Data import AbstData
+from geco_stat.Data import AbstData                     # should be accessible
 from geco_stat.Data import Statistics
 from geco_stat.Data import Histogram
 from geco_stat.Time import TimeIntervalSet

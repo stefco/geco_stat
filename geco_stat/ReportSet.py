@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np      # >=1.10.4
-from geco_stat._version import __version__, __release__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Exceptions import MissingChannelDataException
 from geco_stat.Abstract import Factory

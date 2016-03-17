@@ -2,7 +2,6 @@
 
 import abc
 import numpy as np      # >=1.10.4
-from geco_stat._version import __version__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Abstract import Factory
 from geco_stat.Data import AbstData
@@ -82,9 +81,8 @@ class AbstReport(AbstData):
             }
         """
 
-    @staticmethod
     @abc.abstractmethod
-    def is_anomalous(timeseries):
+    def is_anomalous(self, timeseries):
         """
         MUST BE A STATICMETHOD.
 
@@ -204,7 +202,7 @@ class IRIGBReport(AbstReport):
         # TODO: Implement
         raise NotImplementedError()
 
-    def is_anomalous(timeseries):
+    def is_anomalous(self, timeseries):
         # For now, always assume non-anomalous
         return False
 
@@ -214,7 +212,7 @@ class DuoToneReport(AbstReport):
         # TODO: Implement
         raise NotImplementedError()
 
-    def is_anomalous(timeseries):
+    def is_anomalous(self, timeseries):
         # For now, always assume non-anomalous
         return False
 

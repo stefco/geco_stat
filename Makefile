@@ -112,7 +112,7 @@ endif
 	@echo "present working directory: `pwd -P`"
 endif
 
-env:
+env: hooks
 	@echo "\nConfiguring a virtual environment for python...\n"
 # Install a virtualenv to allow for local development and usage.
 	if ! [ -e "./env" ]; then virtualenv env; fi

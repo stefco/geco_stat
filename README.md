@@ -58,3 +58,7 @@ There is a Makefile included for automating most tasks. To get started, run
 
 You can simply type `make` to see a list of targets for `make` (i.e. commands you
 can have `make` execute).
+
+# To Do
+
+- [ ] Figure out if AbstractReportData should store time information.

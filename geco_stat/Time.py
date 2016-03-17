@@ -3,14 +3,17 @@
 import bisect
 import subprocess
 import numpy as np      # >=1.10.4
-from geco_stat._version import __version__, __release__
-from geco_stat.Interface import ReportInterface
+from geco_stat._version import __version__
+from geco_stat.Abstract import Factory
+from geco_stat.Abstract import AbstUnionable
+from geco_stat.Abstract import AbstractPlottable
+from geco_stat.Abstract import HDF5_IO
 from geco_stat.Exceptions import VersionException
 
-# TODO: Make PlottableInterface
-
-
-class TimeIntervalSet(ReportInterface):
+# Inherit from HDF5_IO first in order to get an implemented clone method
+class TimeIntervalSet(HDF5_IO,
+                      # AbstractPlottable, TODO Make AbstractPlottable
+                      AbstUnionable):
     """
     TimeIntervalSet
 
@@ -30,8 +33,7 @@ class TimeIntervalSet(ReportInterface):
     potentially dangerous side-effects.
     """
 
-    def __init__(self, intervalSet=None, start=None, end=None,
-                 version=__version__):
+    def __init__(self, intervalSet=None, start=None, end=None):
         """
         If no time interval is given at initialization, the TimeIntervalSet
         begins empty. There are two ways to initialize it with a nonempty set
@@ -53,8 +55,6 @@ class TimeIntervalSet(ReportInterface):
 
             [s, e)
         """
-        if version != self.__version__:
-            raise VersionException()
         if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal '
@@ -64,14 +64,14 @@ class TimeIntervalSet(ReportInterface):
             else:
                 self._data = np.array([float(x) for x in intervalSet])
                 self.remove_empty_sets()
-                self._assert_self_consistent()
+                self.assert_self_consistent()
         elif (intervalSet is None and start is None and end is None or
                 start == end):
             self._data = np.array([])
         elif start < end:
             self._data = np.array([float(start), float(end)])
             self.remove_empty_sets()
-            self._assert_self_consistent()
+            self.assert_self_consistent()
         else:
             raise ValueError('Invalid combination of arguments. '
                              'See documentation.')
@@ -273,8 +273,8 @@ class TimeIntervalSet(ReportInterface):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._assert_self_consistent()
-        other._assert_self_consistent()
+        self.assert_self_consistent()
+        other.assert_self_consistent()
         if len(other) == 0 or len(self) == 0:
             return TimeIntervalSet()
         result = TimeIntervalSet()
@@ -313,8 +313,8 @@ class TimeIntervalSet(ReportInterface):
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._assert_self_consistent()
-        other._assert_self_consistent()
+        self.assert_self_consistent()
+        other.assert_self_consistent()
         if self.union(other) != other:
             raise ValueError('Can only take complement with respect to a '
                              'superset.')
@@ -388,7 +388,7 @@ class TimeIntervalSet(ReportInterface):
 
         is empty, and can simply be removed.
         """
-        self._assert_self_consistent() # check
+        self.assert_self_consistent() # check
         i = 0
         while i < len(self.to_ndarray()) - 1:
             if self.to_ndarray()[i] == self.to_ndarray()[i+1]:
@@ -396,7 +396,7 @@ class TimeIntervalSet(ReportInterface):
             else:
                 i += 1           # not a copy, move on to the next one
 
-    def _confirm_unionability(self, other):
+    def assert_unionable(self, other):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' +
                              str(type(self)) + ' with ' + str(type(other)))
@@ -404,7 +404,7 @@ class TimeIntervalSet(ReportInterface):
             raise ValueError('TimeIntervalSets have different versions')
         return True
 
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         'Check that this instance has form consistent with the class spec'
         if type(self.to_ndarray()) != np.ndarray:
             raise Exception('TimeIntervalSet corrupted: '
@@ -445,7 +445,7 @@ class TimeIntervalSet(ReportInterface):
 
         """
         times = [str(int(x)) for x in self.to_ndarray()]
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         tstring = ""
         i = 0
         for time in times:
@@ -462,11 +462,10 @@ class TimeIntervalSet(ReportInterface):
 
     @classmethod
     def __from_dict__(cls, d):
-        return cls(d['data'], version=d['version'])
+        return cls(d['data'])
 
     def __to_dict__(self):
-        return {'data': np.array(self.to_ndarray()),
-                'version': self.__version__}
+        return {'data': np.array(self.to_ndarray())}
 
     def __eq__(self, other):
         return np.array_equal(self.to_ndarray(), other.to_ndarray())
@@ -498,7 +497,7 @@ class TimeIntervalSet(ReportInterface):
 
     def __str__(self):
         'Return a string expressing the object in set union notation'
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         if len(self) == 0:
             return '{}'
         starts = self.to_ndarray()[0::2]
@@ -509,7 +508,7 @@ class TimeIntervalSet(ReportInterface):
         return string
 
     def __repr__(self):
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         return __name__ + '.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
     # TODO this shouldn't circularly Timeseries class... not elegant
@@ -517,3 +516,4 @@ class TimeIntervalSet(ReportInterface):
         """Just clone the TimeIntervalSet belonging to the Timeseries"""
         return timeseries.time_intervals.clone()
 
+Factory.add_class(TimeIntervalSet)

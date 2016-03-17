@@ -14,6 +14,6 @@ requirements:
   - requirements.txt
 
 # ignore errors
-# pylint:
-#   disable:
-#     - super-on-old-class
+pylint:
+  disable:
+    - too-many-arguments

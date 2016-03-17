@@ -83,14 +83,6 @@ class Histogram(AbstData):
         ans.hist    = self.hist + other.hist
         return ans
 
-    def __clone__(self):
-        return type(self)(
-            hist            = self.hist,
-            hist_range      = self.hist_range,
-            hist_num_bins   = self.hist_num_bins,
-            bitrate         = self.bitrate
-        )
-
     def assert_unionable(self, other):
         if (self.hist_range != other.hist_range or
                 self.hist_num_bins != other.hist_num_bins):
@@ -131,9 +123,7 @@ class Histogram(AbstData):
             'hist': np.array(self.hist),
             'hist_range': np.array(self.hist_range),
             'hist_num_bins': self.hist_num_bins,
-            'bitrate': self.bitrate,
-            'version': self.__version__,
-            'class': 'Histogram'
+            'bitrate': self.bitrate
         }
 
     def from_timeseries(self, timeseries):
@@ -227,17 +217,6 @@ class Statistics(AbstData):
         ans.min     = self.min      + other.min
         ans.num     = self.num      + other.num
         return ans
-
-    def __clone__(self):
-        self.assert_self_consistent()
-        return type(self)(
-            sum             = self.sum,
-            sum_sq          = self.sum_sq,
-            max             = self.max,
-            min             = self.min,
-            num             = self.num,
-            bitrate         = self.bitrate
-        )
 
     def assert_unionable(self, other):
         if self.bitrate != other.bitrate:

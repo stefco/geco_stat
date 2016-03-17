@@ -112,16 +112,6 @@ class AbstReport(AbstData):
             ans._data[key] += other._data[key]
         return ans
 
-    def __clone__(self):
-        cloned_data = self._data
-        for key in cloned_data:
-            cloned_data[key] = cloned_data[key].clone()
-        return type(self)(
-            bitrate         = self.bitrate,
-            time_intervals  = self.time_intervals.clone(),
-            data            = cloned_data
-        )
-
     def assert_unionable(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Reports have different bitrates')

@@ -9,6 +9,7 @@ from geco_stat.Abstract import AbstUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
 from geco_stat.Time import TimeIntervalSet
+from geco_stat.Timeseries import Timeseries
 
 # Inherit from HDF5_IO first in order to get an implemented clone method
 class ReportSet(HDF5_IO,
@@ -209,18 +210,6 @@ class ReportSet(HDF5_IO,
         ans.report                  += other.report
         ans.report_anomalies_only   += other.report_anomalies_only
         ans.report_sans_anomalies   += other.report_sans_anomalies
-
-    def __clone__(self):
-        return type(self)(
-            report_class_name       = self.report_class_name,
-            bitrate                 = self.bitrate,
-            channel_name            = self.channel_name,
-            time_intervals          = self.time_intervals,
-            report                  = self.report,
-            report_anomalies_only   = self.report_anomalies_only,
-            report_sans_anomalies   = self.report_sans_anomalies,
-            missing_times           = self.missing_times
-        )
 
     @classmethod
     def __from_dict__(cls, d):

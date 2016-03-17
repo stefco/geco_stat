@@ -416,9 +416,6 @@ class TimeIntervalSet(HDF5_IO,
                             'of endpoints')
         return True
 
-    def __clone__(self):
-        return type(self)(self.to_ndarray())
-
     def combined_length(self):
         'Get the combined length of all time intervals in this TimeIntervalSet.'
         if len(self.to_ndarray()) == 0:
@@ -511,9 +508,8 @@ class TimeIntervalSet(HDF5_IO,
         self.assert_self_consistent()
         return __name__ + '.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
-    # TODO this shouldn't circularly Timeseries class... not elegant
     def from_timeseries(self, timeseries):
-        """Just clone the TimeIntervalSet belonging to the Timeseries"""
+        # Just clone the TimeIntervalSet belonging to the Timeseries
         return timeseries.time_intervals.clone()
 
 Factory.add_class(TimeIntervalSet)

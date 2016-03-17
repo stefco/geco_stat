@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Exceptions import MissingChannelDataException
 from geco_stat.Abstract import Factory
-from geco_stat.Abstract import AbstractNonIntersectingUnionable
+from geco_stat.Abstract import AbstUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
 from geco_stat.Time import TimeIntervalSet
@@ -12,7 +13,7 @@ from geco_stat.Time import TimeIntervalSet
 # Inherit from HDF5_IO first in order to get an implemented clone method
 class ReportSet(HDF5_IO,
                 # AbstractPlottable, TODO Make AbstractPlottable
-                AbstractNonIntersectingUnionable):
+                AbstUnionable):
     """
     Class for collections of Reports, allowing for more advanced procedures
     that allow the user to distinguish between anomalous and typical time

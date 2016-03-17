@@ -6,13 +6,13 @@ import numpy as np      # >=1.10.4
 from geco_stat._version import __version__, __release__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Abstract import Factory
-from geco_stat.Abstract import AbstractNonIntersectingUnionable
+from geco_stat.Abstract import AbstUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
-from geco_stat.Report import AbstractReport
-from geco_stat.ReportData import AbstData
-from geco_stat.ReportData import Statistics
-from geco_stat.ReportData import Histogram
+from geco_stat.Report import AbstReport
+from geco_stat.Data import AbstData
+from geco_stat.Data import Statistics
+from geco_stat.Data import Histogram
 from geco_stat.Time import TimeIntervalSet
 from geco_stat.Timeseries import Timeseries
 
@@ -71,9 +71,9 @@ def run_unit_tests():
             'kronecker2d': np.identity(3)
         }
     }
-    AbstractReport.__save_dict_to_hdf5__(
+    AbstReport.__save_dict_to_hdf5__(
         ex, 'geco_statistics_test_hdf5_dict_example.hdf5')
-    loaded = AbstractReport.__load_dict_from_hdf5__(
+    loaded = AbstReport.__load_dict_from_hdf5__(
         'geco_statistics_test_hdf5_dict_example.hdf5')
     os.remove('geco_statistics_test_hdf5_dict_example.hdf5')
     np.testing.assert_equal(loaded, ex)

@@ -5,7 +5,7 @@ import numpy as np      # >=1.10.4
 from geco_stat._version import __version__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Abstract import Factory
-from geco_stat.Abstract import AbstractNonIntersectingUnionable
+from geco_stat.Abstract import AbstUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
 from geco_stat.Time import TimeIntervalSet
@@ -13,7 +13,7 @@ from geco_stat.Time import TimeIntervalSet
 # Inherit from HDF5_IO first in order to get an implemented clone method
 class AbstData(HDF5_IO,
                          # AbstractPlottable, TODO Make AbstractPlottable
-                         AbstractNonIntersectingUnionable):
+                         AbstUnionable):
     """
     Abstract class for data that can be aggregated. Subclasses should represent
     small, conceptually unified collections of information. For example,

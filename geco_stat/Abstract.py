@@ -40,15 +40,15 @@ class Factory(object):
     _factory = dict()
 
     @staticmethod
-    def add_class(cls, name=None):
+    def add_class(newcls, name=None):
         """
         Store a class in the factory for later retrieval.
 
         >>> geco_stat.Factory.add_class(object, 'object')
         """
         if name is None:
-            name = cls.__name__
-        Factory._factory[name] = cls 
+            name = newcls.__name__
+        Factory._factory[name] = newcls 
 
     @staticmethod
     def get_class(clsname):
@@ -100,9 +100,9 @@ class Factory(object):
         """
         del Factory._factory[clsname]
 
-class AbstractTimeIntervalSet(object):
+class AbstTimeIntervals(object):
     """
-    The AbstractTimeIntervalSet defines what objects can specify time intervals
+    The AbstTimeIntervals defines what objects can specify time intervals
     over which data might be collected. In practice, it should only have one
     implementation; the abstract class serves mainly to keep the type graph
     acyclic and restrictive.
@@ -126,7 +126,7 @@ class AbstractTimeSeries(object):
     __metaclass__  = abc.ABCMeta
     __version__ = __version__
 
-class AbstractTimeSeriesDerivable(object):
+class AbstTimeSeriesDerivable(object):
     """
     The purpose of ``geco_stat`` is to look at data and do things with it,
     so it is fitting that the primordial interface provides methods for
@@ -146,14 +146,14 @@ class AbstractTimeSeriesDerivable(object):
 
     def get_times(self):
         """
-        Get an AbstractTimeIntervalSet instance representing the time intervals
+        Get an AbstTimeIntervals instance representing the time intervals
         covered by this instance.
         """
         # If storing times differently than suggested here, implement a
         # different method. But using ``_times`` seems reasonable.
-        if isinstance(self, AbstractTimeIntervalSet):
+        if isinstance(self, AbstTimeIntervals):
             return self.clone()
-        elif isinstance(self._times, AbstractTimeIntervalSet):
+        elif isinstance(self._times, AbstTimeIntervals):
             return self._times.clone()
 
     @classmethod
@@ -163,14 +163,15 @@ class AbstractTimeSeriesDerivable(object):
         Create a compatible object using an AbstractTimeSeries as input.
         """
 
-class AbstractNonIntersectingUnionable(AbstractTimeSeriesDerivable):
+class AbstUnionable(AbstTimeSeriesDerivable):
     """
     An interface describing classes whose members contain information that is
     associated with specific time intervals. These members can be unioned or
     "added" together provided that they don't contain redundant time
-    information. This makes it possible to iteratively build instances of
-    AbstractNonIntersectingUnionable that cover large, possibly disjoint
-    spans of time from smaller "atomic" instances simply by unioning.
+    information, i.e., provided their time interval sets are non-intersecting.
+    This makes it possible to iteratively build instances of AbstUnionable that
+    cover large, possibly disjoint spans of time from smaller "atomic"
+    instances simply by unioning.
     """
     __metaclass__  = abc.ABCMeta
     __version__ = __version__
@@ -330,7 +331,7 @@ class HDF5_IO(AbstractDictRepresentable):
     @classmethod
     def load_hdf5(cls, filename):
         """Load an instance saved in an hdf5 file."""
-        # TODO: Make this a AbstractReport-defined staticmethod that only
+        # TODO: Make this a AbstReport-defined staticmethod that only
         # needs class information that is already provided in the saved
         # dictionary.
         return cls.from_dict(cls.__load_dict_from_hdf5__(filename))

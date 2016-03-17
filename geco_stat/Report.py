@@ -5,16 +5,17 @@ import numpy as np      # >=1.10.4
 from geco_stat._version import __version__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Abstract import Factory
-from geco_stat.ReportData import AbstData
+from geco_stat.Data import AbstData
+from geco_stat.Time import TimeIntervalSet
 
 # TODO: Make AbstractPlottable
-class AbstractReport(AbstData):
+class AbstReport(AbstData):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
     and DuoToneReport.
 
-    The AbstractReport class contains information on the time intervals included
+    The AbstReport class contains information on the time intervals included
     as well as basic statistics (mean, max, min, standard deviation)
     on the time intervals included, and finally, multiple histograms
     covering multiple "zoom" levels, for a tailored view of the data.
@@ -51,7 +52,7 @@ class AbstractReport(AbstData):
             if hasattr(self, key):
                 raise ValueError('AbstData dictionary should not '
                                  'have attributes conflicting with '
-                                 'AbstractReport attributes.')
+                                 'AbstReport attributes.')
             setattr(self, key, data[key])
         self.assert_self_consistent()
 
@@ -164,7 +165,7 @@ class AbstractReport(AbstData):
             self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
     # FIXME this needs to be completely revamped to reflect a simpler structure
-    # for Reports. It seems that subclassing AbstractReport should mainly just
+    # for Reports. It seems that subclassing AbstReport should mainly just
     # involve specifying the classes of ReportData that it uses.
     @classmethod
     def __from_dict__(cls, d):
@@ -208,7 +209,7 @@ class AbstractReport(AbstData):
                 return False
         return True
 
-class IRIGBReport(AbstractReport):
+class IRIGBReport(AbstReport):
     def __init__(self):
         # TODO: Implement
         raise NotImplementedError()
@@ -218,7 +219,7 @@ class IRIGBReport(AbstractReport):
         return False
 
 
-class DuoToneReport(AbstractReport):
+class DuoToneReport(AbstReport):
     def __init__(self):
         # TODO: Implement
         raise NotImplementedError()

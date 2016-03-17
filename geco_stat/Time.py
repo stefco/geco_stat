@@ -5,7 +5,7 @@ import subprocess
 import numpy as np      # >=1.10.4
 from geco_stat._version import __version__
 from geco_stat.Abstract import Factory
-from geco_stat.Abstract import AbstractNonIntersectingUnionable
+from geco_stat.Abstract import AbstUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
 from geco_stat.Exceptions import VersionException
@@ -13,7 +13,7 @@ from geco_stat.Exceptions import VersionException
 # Inherit from HDF5_IO first in order to get an implemented clone method
 class TimeIntervalSet(HDF5_IO,
                       # AbstractPlottable, TODO Make AbstractPlottable
-                      AbstractNonIntersectingUnionable):
+                      AbstUnionable):
     """
     TimeIntervalSet
 

@@ -3,14 +3,17 @@
 import bisect
 import subprocess
 import numpy as np      # >=1.10.4
-from geco_stat._version import __version__, __release__
-from geco_stat.Abstract import AbstractReport
+from geco_stat._version import __version__
+from geco_stat.Abstract import Factory
+from geco_stat.Abstract import AbstractNonIntersectingUnionable
+from geco_stat.Abstract import AbstractPlottable
+from geco_stat.Abstract import HDF5_IO
 from geco_stat.Exceptions import VersionException
 
-# TODO: Make AbstractPlottable
-
-
-class TimeIntervalSet(AbstractReport):
+# Inherit from HDF5_IO first in order to get an implemented clone method
+class TimeIntervalSet(HDF5_IO,
+                      # AbstractPlottable, TODO Make AbstractPlottable
+                      AbstractNonIntersectingUnionable):
     """
     TimeIntervalSet
 
@@ -30,8 +33,7 @@ class TimeIntervalSet(AbstractReport):
     potentially dangerous side-effects.
     """
 
-    def __init__(self, intervalSet=None, start=None, end=None,
-                 version=__version__):
+    def __init__(self, intervalSet=None, start=None, end=None):
         """
         If no time interval is given at initialization, the TimeIntervalSet
         begins empty. There are two ways to initialize it with a nonempty set
@@ -53,8 +55,6 @@ class TimeIntervalSet(AbstractReport):
 
             [s, e)
         """
-        if version != self.__version__:
-            raise VersionException()
         if type(intervalSet) == list or type(intervalSet) == np.ndarray:
             if len(intervalSet) % 2 != 0:
                 raise ValueError('intervalSet set must have even length (equal '
@@ -462,11 +462,10 @@ class TimeIntervalSet(AbstractReport):
 
     @classmethod
     def __from_dict__(cls, d):
-        return cls(d['data'], version=d['version'])
+        return cls(d['data'])
 
     def __to_dict__(self):
-        return {'data': np.array(self.to_ndarray()),
-                'version': self.__version__}
+        return {'data': np.array(self.to_ndarray())}
 
     def __eq__(self, other):
         return np.array_equal(self.to_ndarray(), other.to_ndarray())
@@ -517,3 +516,4 @@ class TimeIntervalSet(AbstractReport):
         """Just clone the TimeIntervalSet belonging to the Timeseries"""
         return timeseries.time_intervals.clone()
 
+Factory.add_class(TimeIntervalSet)

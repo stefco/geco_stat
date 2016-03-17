@@ -11,16 +11,16 @@ from geco_stat.Abstract import HDF5_IO
 from geco_stat.Time import TimeIntervalSet
 
 # Inherit from HDF5_IO first in order to get an implemented clone method
-class AbstractReportData(HDF5_IO,
+class AbstData(HDF5_IO,
                          # AbstractPlottable, TODO Make AbstractPlottable
                          AbstractNonIntersectingUnionable):
     """
     Abstract class for data that can be aggregated. Subclasses should represent
     small, conceptually unified collections of information. For example,
-    a subclass of AbstractReportData might focus exclusively on gathering
+    a subclass of AbstData might focus exclusively on gathering
     basic statistics, like the mean and median values of a periodic timeseries.
     
-    As of this writing, AbstractReportData DOES NOT necessarily store time
+    As of this writing, AbstData DOES NOT necessarily store time
     information, since time information might not be necessary for every
     single type of ReportData. This is very much subject to change.
     """
@@ -28,7 +28,7 @@ class AbstractReportData(HDF5_IO,
     __version__ = __version__
 
 # TODO: Make AbstractPlottable
-class Histogram(AbstractReportData):
+class Histogram(AbstData):
     """
     A class for storing a histogram of (quasi) periodic timeseries. In
     the current version, each period is assumed to last for one second.
@@ -91,7 +91,7 @@ class Histogram(AbstractReportData):
             bitrate         = self.bitrate
         )
 
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         if (self.hist_range != other.hist_range or
                 self.hist_num_bins != other.hist_num_bins):
             raise ValueError('Histograms have different bin edges')
@@ -104,7 +104,7 @@ class Histogram(AbstractReportData):
                              str(type(self)) + ' with ' + str(type(other)))
         return True
 
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         if self.__version__ != __version__:
             raise ValueError(
                 'Histogram version ' +
@@ -148,7 +148,7 @@ class Histogram(AbstractReportData):
             'yedges should be the t_ticks'
         assert self.bitrate == timeseries.bitrate, \
             'timeseries and histogram must have same bitrate'
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         return type(self)(
             hist            = hist,
             hist_range      = self.hist_range,
@@ -168,7 +168,7 @@ class Histogram(AbstractReportData):
         return np.array_equal(self.hist, other.hist)
 
 # TODO: Make AbstractPlottable
-class Statistics(AbstractReportData):
+class Statistics(AbstData):
     """
     A class for storing diagnostic statistics for the aLIGO timing system.
     Includes methods for iteratively generating, amalgamating, and
@@ -213,7 +213,7 @@ class Statistics(AbstractReportData):
         assert np.int64(bitrate) == bitrate
         self.bitrate    = np.int64(bitrate)
 
-        self._assert_self_consistent()
+        self.assert_self_consistent()
 
     def __union__(self, other):
         """
@@ -229,7 +229,7 @@ class Statistics(AbstractReportData):
         return ans
 
     def __clone__(self):
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         return type(self)(
             sum             = self.sum,
             sum_sq          = self.sum_sq,
@@ -239,7 +239,7 @@ class Statistics(AbstractReportData):
             bitrate         = self.bitrate
         )
 
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
         if self.__version__ != other.__version__:
@@ -249,7 +249,7 @@ class Statistics(AbstractReportData):
                              str(type(self)) + ' with ' + str(type(other)))
         return True
 
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         assert self.sum.shape == (self.bitrate,), \
             "sum should be vector with length equal to bitrate"
         assert self.sum_sq.shape == (self.bitrate,), \

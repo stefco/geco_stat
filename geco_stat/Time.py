@@ -64,14 +64,14 @@ class TimeIntervalSet(HDF5_IO,
             else:
                 self._data = np.array([float(x) for x in intervalSet])
                 self.remove_empty_sets()
-                self._assert_self_consistent()
+                self.assert_self_consistent()
         elif (intervalSet is None and start is None and end is None or
                 start == end):
             self._data = np.array([])
         elif start < end:
             self._data = np.array([float(start), float(end)])
             self.remove_empty_sets()
-            self._assert_self_consistent()
+            self.assert_self_consistent()
         else:
             raise ValueError('Invalid combination of arguments. '
                              'See documentation.')
@@ -273,8 +273,8 @@ class TimeIntervalSet(HDF5_IO,
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._assert_self_consistent()
-        other._assert_self_consistent()
+        self.assert_self_consistent()
+        other.assert_self_consistent()
         if len(other) == 0 or len(self) == 0:
             return TimeIntervalSet()
         result = TimeIntervalSet()
@@ -313,8 +313,8 @@ class TimeIntervalSet(HDF5_IO,
         Returns a new TimeIntervalSet instance without modifying the input
         arguments.
         """
-        self._assert_self_consistent()
-        other._assert_self_consistent()
+        self.assert_self_consistent()
+        other.assert_self_consistent()
         if self.union(other) != other:
             raise ValueError('Can only take complement with respect to a '
                              'superset.')
@@ -388,7 +388,7 @@ class TimeIntervalSet(HDF5_IO,
 
         is empty, and can simply be removed.
         """
-        self._assert_self_consistent() # check
+        self.assert_self_consistent() # check
         i = 0
         while i < len(self.to_ndarray()) - 1:
             if self.to_ndarray()[i] == self.to_ndarray()[i+1]:
@@ -396,7 +396,7 @@ class TimeIntervalSet(HDF5_IO,
             else:
                 i += 1           # not a copy, move on to the next one
 
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' +
                              str(type(self)) + ' with ' + str(type(other)))
@@ -404,7 +404,7 @@ class TimeIntervalSet(HDF5_IO,
             raise ValueError('TimeIntervalSets have different versions')
         return True
 
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         'Check that this instance has form consistent with the class spec'
         if type(self.to_ndarray()) != np.ndarray:
             raise Exception('TimeIntervalSet corrupted: '
@@ -445,7 +445,7 @@ class TimeIntervalSet(HDF5_IO,
 
         """
         times = [str(int(x)) for x in self.to_ndarray()]
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         tstring = ""
         i = 0
         for time in times:
@@ -497,7 +497,7 @@ class TimeIntervalSet(HDF5_IO,
 
     def __str__(self):
         'Return a string expressing the object in set union notation'
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         if len(self) == 0:
             return '{}'
         starts = self.to_ndarray()[0::2]
@@ -508,7 +508,7 @@ class TimeIntervalSet(HDF5_IO,
         return string
 
     def __repr__(self):
-        self._assert_self_consistent()
+        self.assert_self_consistent()
         return __name__ + '.TimeIntervalSet(' + repr(list(self._data)) + ')'
 
     # TODO this shouldn't circularly Timeseries class... not elegant

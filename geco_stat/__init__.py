@@ -10,7 +10,7 @@ from geco_stat.Abstract import AbstractNonIntersectingUnionable
 from geco_stat.Abstract import AbstractPlottable
 from geco_stat.Abstract import HDF5_IO
 from geco_stat.Report import AbstractReport
-from geco_stat.ReportData import AbstractReportData
+from geco_stat.ReportData import AbstData
 from geco_stat.ReportData import Statistics
 from geco_stat.ReportData import Histogram
 from geco_stat.Time import TimeIntervalSet

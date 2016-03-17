@@ -70,7 +70,7 @@ class ReportSet(HDF5_IO,
         self.bitrate                = np.int64(bitrate)
         self.channel_name           = channel_name
 
-        self._assert_self_consistent()
+        self.assert_self_consistent()
 
     def get_report_class(self):
         """
@@ -136,7 +136,7 @@ class ReportSet(HDF5_IO,
             missing_times           = missing_times
         )
 
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         # TODO: make sure the r.__name__ business below works
         for r in (self.report, self.report_anomalies_only,
                   self.report_sans_anomalies):
@@ -146,8 +146,8 @@ class ReportSet(HDF5_IO,
                     r.__name__ +
                     ' must be instance of ' +
                     self.report_class_name)
-            r._assert_self_consistent()
-            # r._assert_unionable(self.get_report_class()(self.bitrate))
+            r.assert_self_consistent()
+            # r.assert_unionable(self.get_report_class()(self.bitrate))
             if self.bitrate != r.bitrate:
                 raise ValueError(
                     'key ' +
@@ -164,7 +164,7 @@ class ReportSet(HDF5_IO,
                     'key ' +
                     t.__name__ +
                     ' must be instance of TimeIntervalSet')
-            t._assert_self_consistent()
+            t.assert_self_consistent()
             if self.__version__ != t.__version__:
                 raise ValueError(
                     'key ' +
@@ -183,7 +183,7 @@ class ReportSet(HDF5_IO,
         assert np.int64(
             self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         if not isinstance(self, type(other)):
             raise ValueError('instances of ReportSet must be of same type')
         if self.get_report_class() != other.get_report_class():
@@ -255,8 +255,8 @@ class ReportSet(HDF5_IO,
 
     def __eq__(self, other):
         try:
-            self._assert_self_consistent()
-            other._assert_self_consistent()
+            self.assert_self_consistent()
+            other.assert_self_consistent()
         except ValueError():
             return False
         if not isinstance(self, type(other)):

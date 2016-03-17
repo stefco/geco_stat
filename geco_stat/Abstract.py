@@ -183,6 +183,9 @@ class AbstractNonIntersectingUnionable(AbstractTimeSeriesDerivable):
         ``clone`` method, this should return an instance sharing no object
         pointers with the original instances.
         """
+        self.assert_self_consistent()
+        other.assert_self_consistent()
+        self.assert_unionable(other)
         return self.__union__(other)
 
     # There is no reason to check for consistency every time; too much
@@ -219,13 +222,13 @@ class AbstractNonIntersectingUnionable(AbstractTimeSeriesDerivable):
     # TODO The private method name is undesirable and should be
     # replaced with something better. Not deprecated -- for now.
     @abc.abstractmethod
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         """
         Make sure this instance is self-consistent.
         """
 
     @abc.abstractmethod
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         """
         Make sure these two instances can be unioned.
         """

@@ -5,10 +5,10 @@ import numpy as np      # >=1.10.4
 from geco_stat._version import __version__
 from geco_stat._constants import __default_bitrate__
 from geco_stat.Abstract import Factory
-from geco_stat.ReportData import AbstractReportData
+from geco_stat.ReportData import AbstData
 
 # TODO: Make AbstractPlottable
-class AbstractReport(AbstractReportData):
+class AbstractReport(AbstData):
     """
     A class for generating reports on data integrity. Should be extended to
     create reports specific to different types of data, e.g. IRIGBReport
@@ -49,11 +49,11 @@ class AbstractReport(AbstractReportData):
         self._data = data           # data grouped here
         for key in data:            # instance attr pointers for convenience
             if hasattr(self, key):
-                raise ValueError('AbstractReportData dictionary should not '
+                raise ValueError('AbstData dictionary should not '
                                  'have attributes conflicting with '
                                  'AbstractReport attributes.')
             setattr(self, key, data[key])
-        self._assert_self_consistent()
+        self.assert_self_consistent()
 
     @classmethod
     @abc.abstractmethod
@@ -121,7 +121,7 @@ class AbstractReport(AbstractReportData):
             data            = cloned_data
         )
 
-    def _assert_unionable(self, other):
+    def assert_unionable(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Reports have different bitrates')
         if self.__version__ != other.__version__:
@@ -131,25 +131,25 @@ class AbstractReport(AbstractReportData):
                              str(type(self)) + ' with ' + str(type(other)))
         if set(self._data) != set(other._data):
             raise ValueError(
-                'AbstractReportData sets do not have matching key sets.')
+                'AbstData sets do not have matching key sets.')
         if self.time_intervals.intersection(
                 other.time_intervals) != TimeIntervalSet():
             raise ValueError('Reports have overlapping time intervals.')
         return True
 
     # TODO confirm self data unionability with new class instance
-    def _assert_self_consistent(self):
+    def assert_self_consistent(self):
         """
         Confirm that this Report is self-consistent. It should not generally
         be necessary to modify this, except perhaps to extend it in subclasses.
         """
         for key in self._data:
-            if not isinstance(self._data[key], AbstractReportData):
+            if not isinstance(self._data[key], AbstData):
                 raise ValueError(
                     'key ' +
                     str(key) +
-                    ' must be instance of AbstractReportData')
-            self._data[key]._assert_self_consistent()
+                    ' must be instance of AbstData')
+            self._data[key].assert_self_consistent()
             if self.bitrate != self._data[key].bitrate:
                 raise ValueError('Report constituents have different bitrates')
             if self.__version__ != self._data[key].__version__:
@@ -172,9 +172,9 @@ class AbstractReport(AbstractReportData):
         for key, value in d['data'].items():
             # FIXME implement this using the Factory pattern used elsewhere.
             report_data_class = globals()[ value['class'] ]
-            if not issubclass(report_data_class, AbstractReportData):
+            if not issubclass(report_data_class, AbstData):
                 raise ValueError('Cannot reconstruct Report data; class '
-                                 'property not a valid AbstractReportData '
+                                 'property not a valid AbstData '
                                  'subclass')
             data[key] = report_data_class.from_dict(value)
         return cls(

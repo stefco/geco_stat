@@ -396,7 +396,7 @@ class TimeIntervalSet(AbstractReport):
             else:
                 i += 1           # not a copy, move on to the next one
 
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         if type(self) != type(other):
             raise ValueError('Type mismatch: cannot union ' +
                              str(type(self)) + ' with ' + str(type(other)))

@@ -117,7 +117,7 @@ class Histogram(AbstractReportData):
             bitrate         = self.bitrate
         )
 
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         if (self.hist_range != other.hist_range or
                 self.hist_num_bins != other.hist_num_bins):
             raise ValueError('Histograms have different bin edges')
@@ -272,7 +272,7 @@ class Statistics(AbstractReportData):
             bitrate         = self.bitrate
         )
 
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Statistics have different bitrates')
         if self.__version__ != other.__version__:
@@ -476,7 +476,7 @@ class AbstractReport(AbstractReport):
             data            = cloned_data
         )
 
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         if self.bitrate != other.bitrate:
             raise ValueError('Reports have different bitrates')
         if self.__version__ != other.__version__:
@@ -729,7 +729,7 @@ class ReportSet(AbstractReport):
                     ' must be instance of ' +
                     self.report_class_name)
             r._assert_self_consistent()
-            # r._confirm_unionability(self.get_report_class()(self.bitrate))
+            # r._assert_unionable(self.get_report_class()(self.bitrate))
             if self.bitrate != r.bitrate:
                 raise ValueError(
                     'key ' +
@@ -765,7 +765,7 @@ class ReportSet(AbstractReport):
         assert np.int64(
             self.bitrate) == self.bitrate, 'bitrate must be an integer'
 
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         if not isinstance(self, type(other)):
             raise ValueError('instances of ReportSet must be of same type')
         if self.get_report_class() != other.get_report_class():

@@ -313,6 +313,6 @@ class AbstractReport(HDF5_IO):
     # This should be handled through ducktyping.
     # FIXME deprecated
     @abc.abstractmethod
-    def _confirm_unionability(self, other):
+    def _assert_unionable(self, other):
         "Make sure these two instances can be unioned."
 
